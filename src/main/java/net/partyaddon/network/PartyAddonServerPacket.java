@@ -86,9 +86,9 @@ public class PartyAddonServerPacket {
                 writeS2CSyncDeclinePacket(player, invitationPlayerId);
                 ((GroupManagerAccess) player).getGroupManager().declineInvitation();
 
-                ServerPlayerEntity invitationPlayer = player.getServer().getPlayerManager().getPlayer(invitationPlayerId);
-                if (invitationPlayer != null) {
-                    invitationPlayer.sendMessage(Text.translatable("text.partyaddon.declined_invitation", player.getName().getString()));
+                ServerPlayerEntity inviter = player.getServer().getPlayerManager().getPlayer(invitationPlayerId);
+                if (inviter != null) {
+                    inviter.sendMessage(Text.translatable("text.partyaddon.declined_invitation", player.getName().getString()));
                 }
             });
         });
@@ -110,10 +110,10 @@ public class PartyAddonServerPacket {
             UUID groupLeaderUUID = buffer.readUuid();
             UUID kickPlayerId = buffer.readUuid();
             server.execute(() -> {
-                ServerPlayerEntity kickPlayer = player.getServer().getPlayerManager().getPlayer(kickPlayerId);
-                ServerPlayerEntity groupLeader = player.getServer().getPlayerManager().getPlayer(groupLeaderUUID);
-                if (kickPlayer != null && groupLeader != null && ((GroupManagerAccess) groupLeader).getGroupManager().isGroupLeader()) {
-                    GroupManager.leaveGroup(kickPlayer, true);
+                ServerPlayerEntity leader = player.getServer().getPlayerManager().getPlayer(groupLeaderUUID);
+                ServerPlayerEntity kickedPlayer = player.getServer().getPlayerManager().getPlayer(kickPlayerId);
+                if (kickedPlayer != null && leader != null && ((GroupManagerAccess) leader).getGroupManager().isGroupLeader()) {
+                    GroupManager.leaveGroup(kickedPlayer, true);
                 }
             });
         });
@@ -128,32 +128,31 @@ public class PartyAddonServerPacket {
     public static void writeS2CSyncGroupManagerPacket(ServerPlayerEntity serverPlayerEntity, GroupManager groupManager) {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
 
-        List<UUID> availablePlayerIdList = new ArrayList<>();
-        for (ServerPlayerEntity player : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
-            availablePlayerIdList.add(player.getUuid());
+        List<UUID> availablePlayerIdList = new ArrayList<UUID>();
+        for (int i = 0; i < serverPlayerEntity.getServer().getPlayerManager().getPlayerList().size(); i++) {
+            availablePlayerIdList.add(serverPlayerEntity.getServer().getPlayerManager().getPlayerList().get(i).getUuid());
         }
 
-        availablePlayerIdList.remove(serverPlayerEntity.getUuid());
+        availablePlayerIdList.remove((Object) serverPlayerEntity.getUuid());
 
-        availablePlayerIdList.removeAll(groupManager.getGroupPlayerIdList());
-
+        for (int i = 0; i < groupManager.getGroupPlayerIdList().size(); i++) {
+            availablePlayerIdList.remove((Object) groupManager.getGroupPlayerIdList().get(i));
+        }
         buf.writeInt(availablePlayerIdList.size());
-        for (UUID uuid : availablePlayerIdList) {
-            buf.writeUuid(uuid);
+        for (int i = 0; i < availablePlayerIdList.size(); i++) {
+            buf.writeUuid(availablePlayerIdList.get(i));
         }
-
         int starPlayerCount = groupManager.getStarPlayerIdList().size();
         buf.writeInt(starPlayerCount);
-        for (UUID uuid : groupManager.getStarPlayerIdList()) {
-            buf.writeUuid(uuid);
+        for (int i = 0; i < starPlayerCount; i++) {
+            buf.writeUuid(groupManager.getStarPlayerIdList().get(i));
         }
 
         int groupCount = groupManager.getGroupPlayerIdList().size();
         buf.writeInt(groupCount);
-        for (UUID uuid : groupManager.getGroupPlayerIdList()) {
-            buf.writeUuid(uuid);
+        for (int i = 0; i < groupCount; i++) {
+            buf.writeUuid(groupManager.getGroupPlayerIdList().get(i));
         }
-
         buf.writeBoolean(groupManager.getGroupLeaderId() != null);
         if (groupManager.getGroupLeaderId() != null) {
             buf.writeUuid(groupManager.getGroupLeaderId());
@@ -164,14 +163,11 @@ public class PartyAddonServerPacket {
 
     public static void writeS2CSyncStarPlayerListPacket(ServerPlayerEntity serverPlayerEntity) {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        GroupManager groupManager = ((GroupManagerAccess) serverPlayerEntity).getGroupManager();
-
-        int count = groupManager.getStarPlayerIdList().size();
+        int count = ((GroupManagerAccess) serverPlayerEntity).getGroupManager().getStarPlayerIdList().size();
         buf.writeInt(count);
-        for (UUID uuid : groupManager.getStarPlayerIdList()) {
-            buf.writeUuid(uuid);
+        for (int i = 0; i < count; i++) {
+            buf.writeUuid(((GroupManagerAccess) serverPlayerEntity).getGroupManager().getStarPlayerIdList().get(i));
         }
-
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SYNC_STAR_PLAYER_LIST_SC_PACKET, buf);
         serverPlayerEntity.networkHandler.sendPacket(packet);
     }
@@ -185,6 +181,7 @@ public class PartyAddonServerPacket {
 
     public static void writeS2CSyncDeclinePacket(ServerPlayerEntity serverPlayerEntity, UUID playerId) {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        // buf.writeInt(playerId);
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SYNC_DECLINE_INVITATION_SC_PACKET, buf);
         serverPlayerEntity.networkHandler.sendPacket(packet);
     }
@@ -197,34 +194,12 @@ public class PartyAddonServerPacket {
 
     public static void writeS2CMapCompatPacket(ServerPlayerEntity serverPlayerEntity) {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        GroupManager groupManager = ((GroupManagerAccess) serverPlayerEntity).getGroupManager();
-
-        List<UUID> groupPlayerUUIDs = new ArrayList<>();
-        List<BlockPos> groupPlayerBlockPoses = new ArrayList<>();
-        List<Float> groupPlayerYaws = new ArrayList<>();
-
-        for (UUID playerId : groupManager.getGroupPlayerIdList()) {
-            ServerPlayerEntity groupPlayer = serverPlayerEntity.getWorld().getPlayerByUuid(playerId);
-
-            if (groupPlayer == null || serverPlayerEntity.getUuid().equals(playerId)) {
-                continue;
-            }
-
-            groupPlayerUUIDs.add(playerId);
-            groupPlayerBlockPoses.add(groupPlayer.getBlockPos());
-            groupPlayerYaws.add(groupPlayer.getYaw());
+        ServerPlayerEntity groupPlayer = (ServerPlayerEntity) serverPlayerEntity.getWorld().getPlayerByUuid(serverPlayerEntity.getUuid());
+        if (groupPlayer != null) {
+            BlockPos blockPos = groupPlayer.getBlockPos();
+            buf.writeInt(blockPos.getX());
+            buf.writeInt(blockPos.getZ());
         }
-
-        int uuidCount = groupPlayerUUIDs.size();
-
-        buf.writeInt(uuidCount);
-
-        for (int i = 0; i < uuidCount; i++) {
-            buf.writeUuid(groupPlayerUUIDs.get(i));
-            buf.writeBlockPos(groupPlayerBlockPoses.get(i));
-            buf.writeFloat(groupPlayerYaws.get(i));
-        }
-
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(MAP_COMPAT_SC_PACKET, buf);
         serverPlayerEntity.networkHandler.sendPacket(packet);
     }
