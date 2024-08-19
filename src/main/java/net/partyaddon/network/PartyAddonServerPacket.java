@@ -195,33 +195,35 @@ public class PartyAddonServerPacket {
     }
 
     public static void writeS2CMapCompatPacket(ServerPlayerEntity serverPlayerEntity) {
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        GroupManager groupManager = ((GroupManagerAccess) serverPlayerEntity).getGroupManager();
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    GroupManager groupManager = ((GroupManagerAccess) serverPlayerEntity).getGroupManager();
 
-        int uuidCount = 0;
-        List<UUID> groupPlayerUUIDs = new ArrayList<UUID>();
-        List<BlockPos> groupPlayerBlockPoses = new ArrayList<BlockPos>();
-        List<Float> groupPlayerYaws = new ArrayList<Float>();
+    List<UUID> groupPlayerUUIDs = new ArrayList<>();
+    List<BlockPos> groupPlayerBlockPoses = new ArrayList<>();
+    List<Float> groupPlayerYaws = new ArrayList<>();
 
-        for (int i = 0; i < groupManager.getGroupPlayerIdList().size(); i++) {
-            if (serverPlayerEntity.getWorld().getPlayerByUuid(groupManager.getGroupPlayerIdList().get(i)) == null || serverPlayerEntity.getUuid().equals(groupManager.getGroupPlayerIdList().get(i))) {
-                continue;
-            }
-            groupPlayerUUIDs.add(groupManager.getGroupPlayerIdList().get(i));
-            groupPlayerBlockPoses.add(serverPlayerEntity.getWorld().getPlayerByUuid(groupManager.getGroupPlayerIdList().get(i)).getBlockPos());
-            groupPlayerYaws.add(serverPlayerEntity.getWorld().getPlayerByUuid(groupManager.getGroupPlayerIdList().get(i)).getYaw());
-
-            uuidCount = i + 1;
+    for (UUID playerUUID : groupManager.getGroupPlayerIdList()) {
+        // Get the player entity from the server player manager
+        ServerPlayerEntity groupPlayer = serverPlayerEntity.getServer().getPlayerManager().getPlayer(playerUUID);
+        if (groupPlayer == null || serverPlayerEntity.getUuid().equals(playerUUID)) {
+            continue;
         }
 
-        buf.writeInt(uuidCount);
-        for (int i = 0; i < uuidCount; i++) {
-            buf.writeUuid(groupPlayerUUIDs.get(i));
-            buf.writeBlockPos(groupPlayerBlockPoses.get(i));
-            buf.writeFloat(groupPlayerYaws.get(i));
-        }
-        CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(MAP_COMPAT_SC_PACKET, buf);
-        serverPlayerEntity.networkHandler.sendPacket(packet);
+        groupPlayerUUIDs.add(playerUUID);
+        groupPlayerBlockPoses.add(groupPlayer.getBlockPos());
+        groupPlayerYaws.add(groupPlayer.getYaw());
     }
+
+    int uuidCount = groupPlayerUUIDs.size();
+    buf.writeInt(uuidCount);
+    for (int i = 0; i < uuidCount; i++) {
+        buf.writeUuid(groupPlayerUUIDs.get(i));
+        buf.writeBlockPos(groupPlayerBlockPoses.get(i));
+        buf.writeFloat(groupPlayerYaws.get(i));
+    }
+    CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(MAP_COMPAT_SC_PACKET, buf);
+    serverPlayerEntity.networkHandler.sendPacket(packet);
+}
+
 
 }
