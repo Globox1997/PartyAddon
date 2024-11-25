@@ -8,32 +8,6 @@ import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 @Config.Gui.Background("minecraft:textures/block/stone.png")
 public class PartyAddonConfig implements ConfigData {
 
-    // public int test0x = 0;
-    // public int test1x = 0;
-    // public int test2x = 0;
-    // public int test3x = 0;
-    // public int test4x = 0;
-    // public int test5x = 0;
-    // public int test6x = 0;
-
-    // public int test0 = 0;
-    // public int test1 = 0;
-    // public int test2 = 0;
-    // public int test3 = 0;
-    // public int test4 = 0;
-    // public int test5 = 0;
-    // public int test6 = 0;
-    // public int test7 = 0;
-    // public int test8 = 0;
-    // public int test9 = 0;
-    // public int test10 = 0;
-    // public int test11 = 0;
-    // public int test12 = 0;
-    // public int test13 = 0;
-    // public int test14 = 0;
-    // public int test15 = 0;
-    // public int test16 = 0;
-
     public boolean distributeVanillaXP = true;
     @Comment("LevelZ compatibility")
     public boolean distributeLevelZXP = true;

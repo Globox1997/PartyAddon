@@ -1,7 +1,6 @@
 ### Added:
 - 
 ### Fixed:
-- Fixed xaeroplus compat
-- Fixed party issue on player death
-### Changed:
 - 
+### Changed:
+- Updated to mc 1.21.1

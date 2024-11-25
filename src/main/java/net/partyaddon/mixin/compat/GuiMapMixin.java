@@ -1,8 +1,12 @@
 package net.partyaddon.mixin.compat;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.partyaddon.network.packet.MapPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,7 +21,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.packet.c2s.play.CustomPayloadC2SPacket;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.partyaddon.access.compat.WorldMapAccess;
@@ -143,7 +146,7 @@ public abstract class GuiMapMixin extends ScreenBase implements WorldMapAccess {
     private void renderTailMixin(DrawContext context, int scaledMouseX, int scaledMouseY, float partialTicks, CallbackInfo info) {
         this.syncCount++;
         if (this.syncCount != 0 && this.syncCount % 200 == 0) {
-            client.getNetworkHandler().sendPacket(new CustomPayloadC2SPacket(PartyAddonServerPacket.MAP_COMPAT_CS_PACKET, new PacketByteBuf(Unpooled.buffer())));
+            ClientPlayNetworking.send(new MapPacket(new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
         }
     }
 

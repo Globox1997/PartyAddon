@@ -1,5 +1,6 @@
 package net.partyaddon.mixin;
 
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,7 +28,7 @@ public abstract class ExperienceOrbEntityMixin extends Entity {
     }
 
     @Inject(method = "onPlayerCollision", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;addExperience(I)V"), cancellable = true, locals = LocalCapture.CAPTURE_FAILSOFT)
-    private void onPlayerCollisionMixin(PlayerEntity player, CallbackInfo info, int i) {
+    private void onPlayerCollisionMixin(PlayerEntity player, CallbackInfo info, ServerPlayerEntity serverPlayerEntity, int i) {
         if (ConfigInit.CONFIG.distributeVanillaXP && !((GroupManagerAccess) player).getGroupManager().getGroupPlayerIdList().isEmpty()
                 && ((GroupManagerAccess) player).getGroupManager().getGroupLeaderId() != null
                 && player.getWorld().getPlayerByUuid(((GroupManagerAccess) player).getGroupManager().getGroupLeaderId()) != null) {

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
+import net.partyaddon.network.PartyAddonClientPacket;
 import org.lwjgl.glfw.GLFW;
 
 import net.fabricmc.api.EnvType;
@@ -28,7 +29,6 @@ import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.group.GroupManager;
 import net.partyaddon.init.ConfigInit;
 import net.partyaddon.init.RenderInit;
-import net.partyaddon.network.PartyAddonClientPacket;
 import net.partyaddon.util.NameHelper;
 
 @Environment(EnvType.CLIENT)
@@ -167,9 +167,6 @@ public class PartyScreen extends Screen implements Tab {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context);
-        context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.left, this.top, 0, 0, 200, 216);
-
         super.render(context, mouseX, mouseY, delta);
 
         // Top label
@@ -292,6 +289,13 @@ public class PartyScreen extends Screen implements Tab {
     }
 
     @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        renderInGameBackground(context);
+
+        context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.left, this.top, 0, 0, 200, 216);
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (this.searchBox.keyPressed(keyCode, scanCode, modifiers) || (this.searchBox.isActive() && keyCode != GLFW.GLFW_KEY_ESCAPE))
             return true;
@@ -323,22 +327,16 @@ public class PartyScreen extends Screen implements Tab {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    // private boolean isPointWithinBounds(int x, int y, int width, int height, double pointX, double pointY) {
-    // int i = (this.width - 200) / 2;
-    // int j = (this.height - 216) / 2;
-    // return (pointX -= (double) i) >= (double) (x - 1) && pointX < (double) (x + width + 1) && (pointY -= (double) j) >= (double) (y - 1) && pointY < (double) (y + height + 1);
-    // }
-
     private boolean canScroll(int listSize) {
         return listSize > availablePlayerButtons.length;
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         int i = this.availablePlayers.size();
         if (this.canScroll(i)) {
             int j = i - availablePlayerButtons.length;
-            this.indexStartOffset = MathHelper.clamp((int) ((double) this.indexStartOffset - amount), 0, j);
+            this.indexStartOffset = MathHelper.clamp((int) ((double) this.indexStartOffset - verticalAmount), 0, j);
         }
         return true;
     }
@@ -436,7 +434,7 @@ public class PartyScreen extends Screen implements Tab {
         }
 
         @Override
-        public void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
             TextRenderer textRenderer = client.textRenderer;
             int i = this.getTextureY();
             RenderSystem.enableBlend();

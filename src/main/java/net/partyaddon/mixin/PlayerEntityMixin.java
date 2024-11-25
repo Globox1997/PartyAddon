@@ -1,11 +1,5 @@
 package net.partyaddon.mixin;
 
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -13,6 +7,10 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.world.World;
 import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.group.GroupManager;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin extends LivingEntity implements GroupManagerAccess {
@@ -46,17 +44,6 @@ public abstract class PlayerEntityMixin extends LivingEntity implements GroupMan
     @Override
     public void setGroupManager(GroupManager groupManager) {
         this.groupManager = groupManager;
-    }
-
-    @Inject(method = "remove", at = @At("HEAD"))
-    private void removeMixin(Entity.RemovalReason reason, CallbackInfo info) {
-        if (!this.getWorld().isClient() && !reason.equals(RemovalReason.UNLOADED_WITH_PLAYER) && !this.groupManager.getGroupPlayerIdList().isEmpty()) {
-            // this.groupManager.leaveGroup();
-            // for (int i = 0; i < this.groupManager.getGroupPlayerIdList().size(); i++) {
-
-            // }
-            // PartyAddonServerPacket.writeS2CSyncGroupManagerPacket((ServerPlayerEntity) (Object) this);
-        }
     }
 
 }

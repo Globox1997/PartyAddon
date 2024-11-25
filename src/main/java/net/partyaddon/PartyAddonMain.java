@@ -2,6 +2,7 @@ package net.partyaddon;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.util.Identifier;
 import net.partyaddon.init.CommandInit;
 import net.partyaddon.init.ConfigInit;
 import net.partyaddon.init.EventInit;
@@ -20,4 +21,7 @@ public class PartyAddonMain implements ModInitializer {
         PartyAddonServerPacket.init();
     }
 
+    public static Identifier identifierOf(String name) {
+        return Identifier.of("partyaddon", name);
+    }
 }

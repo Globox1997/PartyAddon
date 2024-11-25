@@ -1,11 +1,6 @@
 package net.partyaddon.init;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -13,17 +8,22 @@ import net.libz.registry.TabRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.partyaddon.PartyAddonMain;
 import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.screen.PartyScreen;
 import net.partyaddon.screen.widget.PartyTab;
 import net.partyaddon.util.NameHelper;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 @Environment(EnvType.CLIENT)
 public class RenderInit {
 
-    public static final Identifier PARTY_ADDON_GUI_ICONS = new Identifier("partyaddon:textures/gui/icons.png");
-    public static final Identifier PARTY_ADDON_BACKGROUND = new Identifier("partyaddon:textures/gui/background.png");
-    public static final Identifier PARTY_ADDON_TAB_ICON = new Identifier("partyaddon:textures/gui/tab_icon.png");
+    public static final Identifier PARTY_ADDON_GUI_ICONS = PartyAddonMain.identifierOf("textures/gui/icons.png");
+    public static final Identifier PARTY_ADDON_BACKGROUND = PartyAddonMain.identifierOf("textures/gui/background.png");
+    public static final Identifier PARTY_ADDON_TAB_ICON = PartyAddonMain.identifierOf("textures/gui/tab_icon.png");
 
     public static void init() {
         TabRegistry.registerInventoryTab(new PartyTab(PartyScreen.title, PARTY_ADDON_TAB_ICON, 3, PartyScreen.class));
