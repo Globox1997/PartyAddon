@@ -29,7 +29,7 @@ public class EventInit {
                 int amount = event.getValue();
                 PlayerEntity player = event.getPlayer();
 
-                if (ConfigInit.CONFIG.distributeVanillaXP && !((GroupManagerAccess) player).getGroupManager().getGroupPlayerIdList().isEmpty()) {
+                if (ConfigInit.CONFIG.distributeVanillaXP && !((GroupManagerAccess) player).getGroupManager().getGroupPlayerIdList().isEmpty() && ((GroupManagerAccess) player).getGroupManager().getGroupLeaderId() != null) {
                     ((GroupLeaderAccess) player.getWorld().getPlayerByUuid(((GroupManagerAccess) player).getGroupManager().getGroupLeaderId())).addLeaderVanillaExperience(amount);
                     event.setValue(0);
                 }

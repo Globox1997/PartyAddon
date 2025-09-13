@@ -33,6 +33,7 @@ public class PartyAddonServerPacket {
         PayloadTypeRegistry.playC2S().register(LeaveGroupPacket.PACKET_ID, LeaveGroupPacket.PACKET_CODEC);
         PayloadTypeRegistry.playC2S().register(KickPlayerPacket.PACKET_ID, KickPlayerPacket.PACKET_CODEC);
         PayloadTypeRegistry.playC2S().register(MapPacket.PACKET_ID, MapPacket.PACKET_CODEC);
+        PayloadTypeRegistry.playC2S().register(SyncGroupPacket.PACKET_ID, SyncGroupPacket.PACKET_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(PartyScreenPacket.PACKET_ID, (payload, context) -> {
             context.server().execute(() -> {
@@ -109,6 +110,12 @@ public class PartyAddonServerPacket {
         ServerPlayNetworking.registerGlobalReceiver(MapPacket.PACKET_ID, (payload, context) -> {
             context.server().execute(() -> {
                 writeS2CMapCompatPacket(context.player());
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(SyncGroupPacket.PACKET_ID, (payload, context) -> {
+            context.server().execute(() -> {
+                writeS2CSyncGroupManagerPacket(context.player(), ((GroupManagerAccess) context.player()).getGroupManager());
             });
         });
     }
