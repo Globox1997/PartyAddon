@@ -1,11 +1,14 @@
 plugins {
-	id 'fabric-loom' version '1.8-SNAPSHOT'
+	id 'fabric-loom' version '1.11-SNAPSHOT'
 	id 'maven-publish'
 }
 
-archivesBaseName = project.archives_base_name
 version = project.mod_version
 group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
 
 repositories {
     maven { url "https://maven.shedaniel.me/" }
@@ -33,7 +36,7 @@ dependencies {
         exclude(group: "net.fabricmc.fabric-api")
     }
     // LevelZ
-    modImplementation ('maven.modrinth:levelz:2.0.0+1.21.1') {
+    modImplementation ('maven.modrinth:levelz:2.0.6+1.21.1') {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
     // LibZ
@@ -45,7 +48,7 @@ dependencies {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
 	// WorldMap
-	modCompileOnly ('maven.modrinth:xaeros-world-map:1.39.0_Fabric_1.21') {
+	modCompileOnly ('maven.modrinth:xaeros-world-map:1.39.12_Fabric_1.21') {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
 }
@@ -73,10 +76,13 @@ java {
 }
 
 jar {
+	inputs.property "archivesName", project.base.archivesName
+
 	from("LICENSE") {
-		rename { "${it}_${project.archivesBaseName}"}
+		rename { "${it}_${inputs.properties.archivesName}"}
 	}
 }
+
 
 // configure the maven publication
 publishing {
