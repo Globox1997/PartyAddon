@@ -37,17 +37,17 @@ import xaero.map.gui.ScreenBase;
 @Mixin(GuiMap.class)
 public abstract class GuiMapMixin extends ScreenBase implements WorldMapAccess {
 
-    @Shadow
+    @Shadow(remap = false)
     private double cameraX;
-    @Shadow
+    @Shadow(remap = false)
     private double cameraZ;
-    @Shadow
+    @Shadow(remap = false)
     private double scale;
-    @Shadow
+    @Shadow(remap = false)
     private MapProcessor mapProcessor;
-    @Shadow
+    @Shadow(remap = false)
     private int mouseBlockPosX;
-    @Shadow
+    @Shadow(remap = false)
     private int mouseBlockPosZ;
 
     private List<UUID> groupPlayerUUIDList;
@@ -66,7 +66,7 @@ public abstract class GuiMapMixin extends ScreenBase implements WorldMapAccess {
         this.groupPlayerYawsList = groupPlayerYawsList;
     }
 
-    @Inject(method = "render", at = @At(value = "FIELD", target = "Lxaero/map/settings/ModSettings;renderArrow:Z", ordinal = 0))
+    @Inject(method = "render", at = @At(value = "FIELD", target = "Lxaero/map/settings/ModSettings;renderArrow:Z", ordinal = 0), remap = false)
     private void renderMixin(DrawContext context, int scaledMouseX, int scaledMouseY, float partialTicks, CallbackInfo info) {
         if (WorldMap.settings.renderArrow) {
             if (groupPlayerUUIDList != null && !groupPlayerUUIDList.isEmpty()) {
@@ -142,7 +142,7 @@ public abstract class GuiMapMixin extends ScreenBase implements WorldMapAccess {
         }
     }
 
-    @Inject(method = "render", at = @At("TAIL"))
+    @Inject(method = "render", at = @At("TAIL"), remap = false)
     private void renderTailMixin(DrawContext context, int scaledMouseX, int scaledMouseY, float partialTicks, CallbackInfo info) {
         this.syncCount++;
         if (this.syncCount != 0 && this.syncCount % 200 == 0) {
@@ -154,19 +154,19 @@ public abstract class GuiMapMixin extends ScreenBase implements WorldMapAccess {
         return pointX < (x + width / 2) && pointX > (x - width / 2) && pointY < (y + height / 2) && pointY > (y - height / 2);
     }
 
-    @Shadow
+    @Shadow(remap = false)
     private void setColourBuffer(float r, float g, float b, float a) {
     }
 
-    @Shadow
+    @Shadow(remap = false)
     public void drawFarArrowOnMap(MatrixStack matrixStack, VertexConsumer guiLinearBuffer, double x, double z, float angle, double sc) {
     }
 
-    @Shadow
+    @Shadow(remap = false)
     public void drawArrowOnMap(MatrixStack matrixStack, VertexConsumer guiLinearBuffer, double x, double z, float angle, double sc) {
     }
 
-    @Shadow
+    @Shadow(remap = false)
     private double getScaleMultiplier(int screenShortSide) {
         return 0D;
     }

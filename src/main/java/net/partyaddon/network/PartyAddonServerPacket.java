@@ -8,6 +8,7 @@ import net.minecraft.util.math.BlockPos;
 import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.group.GroupManager;
 import net.partyaddon.network.packet.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,13 +68,15 @@ public class PartyAddonServerPacket {
         });
 
         ServerPlayNetworking.registerGlobalReceiver(DeclineInvitePacket.PACKET_ID, (payload, context) -> {
-            UUID invitationPlayerId = payload.uuid();
+            Optional<UUID> invitationPlayerId = payload.uuid();
             context.server().execute(() -> {
-                writeS2CSyncDeclinePacket(context.player(), invitationPlayerId);
-                ((GroupManagerAccess) context.player()).getGroupManager().declineInvitation();
+                if (invitationPlayerId.isPresent()) {
+                    writeS2CSyncDeclinePacket(context.player(), invitationPlayerId.get());
+                    ((GroupManagerAccess) context.player()).getGroupManager().declineInvitation();
 
-                if (context.player().getWorld().getPlayerByUuid(invitationPlayerId) != null && context.player().getWorld().getPlayerByUuid(invitationPlayerId) instanceof ServerPlayerEntity) {
-                    context.player().getWorld().getPlayerByUuid(invitationPlayerId).sendMessage(Text.translatable("text.partyaddon.declined_invitation", context.player().getName().getString()));
+                    if (context.player().getWorld().getPlayerByUuid(invitationPlayerId.get()) instanceof ServerPlayerEntity serverPlayerEntity) {
+                        serverPlayerEntity.sendMessage(Text.translatable("text.partyaddon.declined_invitation", context.player().getName().getString()));
+                    }
                 }
             });
         });
@@ -127,8 +130,8 @@ public class PartyAddonServerPacket {
         ServerPlayNetworking.send(serverPlayerEntity, new InvitePlayerPacket(invitationPlayerId));
     }
 
-    public static void writeS2CSyncDeclinePacket(ServerPlayerEntity serverPlayerEntity, UUID playerId) {
-        ServerPlayNetworking.send(serverPlayerEntity, new DeclineInvitePacket(playerId));
+    public static void writeS2CSyncDeclinePacket(ServerPlayerEntity serverPlayerEntity, @Nullable UUID playerId) {
+        ServerPlayNetworking.send(serverPlayerEntity, new DeclineInvitePacket(Optional.ofNullable(playerId)));
     }
 
     public static void writeS2COpenPartyScreenPacket(ServerPlayerEntity serverPlayerEntity) {

@@ -57,6 +57,7 @@ public class PartyAddonClientPacket {
         ClientPlayNetworking.registerGlobalReceiver(DeclineInvitePacket.PACKET_ID, (payload, context) -> {
             // int playerId = buf.readInt();
             // maybe use playerId to send feedback?
+            Optional<UUID> uuid = payload.uuid();
             context.client().execute(() -> {
                 ((GroupManagerAccess) context.player()).getGroupManager().declineInvitation();
             });
@@ -90,7 +91,7 @@ public class PartyAddonClientPacket {
     }
 
     public static void writeC2SDeclineInvitationPacket(UUID entityId) {
-        ClientPlayNetworking.send(new DeclineInvitePacket(entityId));
+        ClientPlayNetworking.send(new DeclineInvitePacket(Optional.ofNullable(entityId)));
     }
 
     public static void writeC2SLeaveGroupPacket() {
