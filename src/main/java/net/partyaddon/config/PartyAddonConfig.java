@@ -22,4 +22,7 @@ public class PartyAddonConfig implements ConfigData {
     public float hudOpacity = 0.75f; // Client only
     public int hudPosX = 0; // Client only
     public int hudPosY = 0; // Client only
+
+    @Comment("Makes all group members share the same skill levels")
+    public boolean sharedSkillLevels = false;
 }
