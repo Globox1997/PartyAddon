@@ -2,11 +2,13 @@ package net.partyaddon.network;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.levelz.util.PacketHelper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.group.GroupManager;
+import net.partyaddon.init.ConfigInit;
 import net.partyaddon.network.packet.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -126,6 +128,12 @@ public class PartyAddonServerPacket {
             availablePlayerIdList.add(serverPlayerEntity.getServer().getPlayerManager().getPlayerList().get(i).getUuid());
         }
         availablePlayerIdList.remove(serverPlayerEntity.getUuid());
+        if(ConfigInit.CONFIG.sharedSkillLevels) {
+            //Update group skills
+            for (ServerPlayerEntity serverPlayerE : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
+                PacketHelper.updatePlayerSkills(serverPlayerE, null);
+            }
+        }
         ServerPlayNetworking.send(serverPlayerEntity, new SyncGroupPacket(availablePlayerIdList, groupManager.getStarPlayerIdList(), groupManager.getGroupPlayerIdList(), Optional.ofNullable(groupManager.getGroupLeaderId())));
     }
 
