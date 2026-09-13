@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.11-SNAPSHOT'
+	id 'fabric-loom' version '1.17-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -36,11 +36,11 @@ dependencies {
         exclude(group: "net.fabricmc.fabric-api")
     }
     // LevelZ
-    modImplementation ('maven.modrinth:levelz:2.0.6+1.21.1') {
+    modImplementation ('maven.modrinth:levelz:2.0.10+1.21.1') {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
     // LibZ
-    modApi ('maven.modrinth:libz:1.0.3+1.21.1') {
+    modApi ('maven.modrinth:libz:1.1.0+1.21.1') {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
 	// Clumps
@@ -48,7 +48,7 @@ dependencies {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
 	// WorldMap
-	modCompileOnly ('maven.modrinth:xaeros-world-map:1.39.12_Fabric_1.21') {
+	modCompileOnly ('maven.modrinth:xaeros-world-map:fabric-1.21.1-1.46.0') {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
 }
