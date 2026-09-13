@@ -11,9 +11,9 @@ import xaero.map.gui.GuiMap;
 public class CompatInit {
 
     public static void syncGroupToMap(MinecraftClient client, List<UUID> groupPlayerUUIDs, List<BlockPos> groupPlayerBlockPoses, List<Float> groupPlayerYaws) {
-        if (client.currentScreen != null && client.currentScreen instanceof GuiMap) {
-            ((WorldMapAccess) client.currentScreen).setGroupPlayers(groupPlayerUUIDs, groupPlayerBlockPoses, groupPlayerYaws);
-        }
+//        if (client.currentScreen != null && client.currentScreen instanceof GuiMap) {
+//            ((WorldMapAccess) client.currentScreen).setGroupPlayers(groupPlayerUUIDs, groupPlayerBlockPoses, groupPlayerYaws);
+//        }
     }
 
 }
