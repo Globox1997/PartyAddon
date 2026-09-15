@@ -85,7 +85,10 @@ public class PartyAddonServerPacket {
         ServerPlayNetworking.registerGlobalReceiver(AcceptInvitePacket.PACKET_ID, (payload, context) -> {
             UUID invitationPlayerId = payload.uuid();
             context.server().execute(() -> {
-                GroupManager.tryJoinGroup(context.player(), invitationPlayerId);
+                UUID actualInvite = ((GroupManagerAccess) context.player()).getGroupManager().getInvitationPlayerId();
+                if (actualInvite != null && actualInvite.equals(invitationPlayerId)) {
+                    GroupManager.tryJoinGroup(context.player(), invitationPlayerId);
+                }
             });
         });
 
