@@ -102,7 +102,12 @@ public class PartyAddonServerPacket {
                 if (context.player().getWorld().getPlayerByUuid(kickPlayerUuid) != null && context.player().getWorld().getPlayerByUuid(kickPlayerUuid) instanceof ServerPlayerEntity
                         && context.player().getWorld().getPlayerByUuid(groupLeaderUuid) != null && context.player().getWorld().getPlayerByUuid(groupLeaderUuid) instanceof ServerPlayerEntity
                         && ((GroupManagerAccess) context.player().getWorld().getPlayerByUuid(groupLeaderUuid)).getGroupManager().isGroupLeader()) {
-                    GroupManager.leaveGroup((ServerPlayerEntity) context.player().getWorld().getPlayerByUuid(kickPlayerUuid), true);
+
+                    ServerPlayerEntity sender = context.player();
+                    GroupManager senderManager = ((GroupManagerAccess) sender).getGroupManager();
+                    if (senderManager.isGroupLeader() && senderManager.getGroupPlayerIdList().contains(kickPlayerUuid)) {
+                        GroupManager.leaveGroup((ServerPlayerEntity) context.player().getWorld().getPlayerByUuid(kickPlayerUuid), true);
+                    }
                 }
             });
         });

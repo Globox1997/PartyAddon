@@ -1,6 +1,6 @@
 ### Added:
 - 
 ### Fixed:
-- 
+- Possible kick player exploit
 ### Changed:
-- Removed xaeros worldmap 
+- 
