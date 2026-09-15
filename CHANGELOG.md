@@ -1,5 +1,5 @@
 ### Added:
-- 
+- Invite command
 ### Fixed:
 - Possible kick player exploit
 - Possible join group exploit
