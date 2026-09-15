@@ -160,7 +160,7 @@ public class GroupManager {
 
             // groupManager of leader
             GroupManager groupLeaderManager = ((GroupManagerAccess) player.getWorld().getPlayerByUuid(leaderId)).getGroupManager();
-            if (groupLeaderManager.getGroupPlayerIdList().size() > ConfigInit.CONFIG.groupSize) {
+            if (groupLeaderManager.getGroupPlayerIdList().size() >= ConfigInit.CONFIG.groupSize) {
                 player.sendMessage(Text.translatable("text.partyaddon.group_is_full", player.getWorld().getPlayerByUuid(leaderId).getName().getString()));
             } else {
                 if (groupLeaderManager.getGroupPlayerIdList().isEmpty()) {
@@ -233,6 +233,22 @@ public class GroupManager {
         } else {
             player.sendMessage(Text.translatable("text.partyaddon.no_group"));
         }
+    }
+
+    public static void invitePlayer(ServerPlayerEntity inviter, ServerPlayerEntity invited) {
+        if (inviter.getUuid().equals(invited.getUuid())) {
+            inviter.sendMessage(Text.translatable("text.partyaddon.cannot_invite_self"));
+            return;
+        }
+        GroupManager inviterManager = ((GroupManagerAccess) inviter).getGroupManager();
+        if (!inviterManager.getGroupPlayerIdList().isEmpty() && !inviterManager.isGroupLeader()) {
+            inviter.sendMessage(Text.translatable("text.partyaddon.not_leader"));
+            return;
+        }
+
+        invited.sendMessage(Text.translatable("text.partyaddon.invitation", inviter.getName().getString()));
+        ((GroupManagerAccess) invited).getGroupManager().invitePlayerToGroup(inviter.getUuid());
+        PartyAddonServerPacket.writeS2CSyncInvitationPacket(invited, inviter.getUuid());
     }
 
 }
