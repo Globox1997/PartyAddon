@@ -21,7 +21,7 @@ import net.partyaddon.init.ConfigInit;
 public abstract class ExperienceOrbEntityMixin extends Entity {
 
     @Shadow
-    private int pickingCount = 1;
+    private int pickingCount;
 
     public ExperienceOrbEntityMixin(EntityType<?> type, World world) {
         super(type, world);

@@ -24,7 +24,7 @@ import net.partyaddon.network.PartyAddonServerPacket;
 public abstract class ServerPlayerEntityMixin extends PlayerEntity implements GroupLeaderAccess {
 
     @Shadow
-    private int syncedExperience = -99999999;
+    private int syncedExperience;
 
     @Unique
     private int collectedVanillaXP = 0;
