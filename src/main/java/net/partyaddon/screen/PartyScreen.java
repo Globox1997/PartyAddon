@@ -64,11 +64,7 @@ public class PartyScreen extends Screen implements Tab {
         this.availablePlayers = new ArrayList<UUID>();
         this.availablePlayers.addAll(groupManager.getAvailablePlayerIdList());
 
-        if (this.availablePlayers.size() >= 13) {
-            this.availablePlayerButtons = new WidgetButtonPage[13];
-        } else {
-            this.availablePlayerButtons = new WidgetButtonPage[this.availablePlayers.size()];
-        }
+        this.availablePlayerButtons = new WidgetButtonPage[13];
         this.acceptDeclineButton = this.addDrawableChild(new WidgetButtonPage(this.left + 109, this.top + 26, -1, button -> {
             if (this.groupManager.getInvitationPlayerId() != null) {
                 PartyAddonClientPacket.writeC2SAcceptInvitationPacket(this.groupManager.getInvitationPlayerId());
@@ -175,6 +171,8 @@ public class PartyScreen extends Screen implements Tab {
         // Available player list label
         context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.player_list"), this.left + 5, this.top + 15, 0x3F3F3F, false);
 
+        this.availablePlayers.removeIf(id -> !NameHelper.isPlayerUUIDNotNull(client, id));
+
         int k = this.top + 45;
         this.renderScrollbar(context, this.left, this.top, this.availablePlayers);
         int m = 0;
@@ -182,10 +180,6 @@ public class PartyScreen extends Screen implements Tab {
             for (int i = 0; i < this.availablePlayers.size(); i++) {
                 if (this.canScroll(this.availablePlayers.size()) && (m < this.indexStartOffset || m >= availablePlayerButtons.length + this.indexStartOffset)) {
                     ++m;
-                    continue;
-                }
-                if (!NameHelper.isPlayerUUIDNotNull(client, this.availablePlayers.get(i))) {
-                    this.availablePlayers.remove(i);
                     continue;
                 }
 
@@ -415,12 +409,12 @@ public class PartyScreen extends Screen implements Tab {
 
                     if (this.getIndex() < -1) {
                         int index = Math.abs(this.getIndex()) - 2;
-                        if (!PartyScreen.this.groupManager.getGroupPlayerIdList().isEmpty() && PartyScreen.this.groupManager.getGroupPlayerIdList().size() >= index) {
+                        if (!PartyScreen.this.groupManager.getGroupPlayerIdList().isEmpty() && PartyScreen.this.groupManager.getGroupPlayerIdList().size() > index) {
                             playerId = PartyScreen.this.groupManager.getGroupPlayerIdList().get(index);
                         }
                     } else {
                         int index = this.getIndex() + PartyScreen.this.indexStartOffset;
-                        if (!PartyScreen.this.availablePlayers.isEmpty() && PartyScreen.this.availablePlayers.size() >= index) {
+                        if (!PartyScreen.this.availablePlayers.isEmpty() && PartyScreen.this.availablePlayers.size() > index) {
                             playerId = PartyScreen.this.availablePlayers.get(index);
                         }
                     }
@@ -467,12 +461,12 @@ public class PartyScreen extends Screen implements Tab {
                 } else {
                     if (this.getIndex() < -1) {
                         int index = Math.abs(this.index) - 2;
-                        if (!PartyScreen.this.groupManager.getGroupPlayerIdList().isEmpty() && PartyScreen.this.groupManager.getGroupPlayerIdList().size() >= index) {
+                        if (!PartyScreen.this.groupManager.getGroupPlayerIdList().isEmpty() && PartyScreen.this.groupManager.getGroupPlayerIdList().size() > index) {
                             playerId = PartyScreen.this.groupManager.getGroupPlayerIdList().get(index);
                         }
                     } else {
                         int index = this.index + PartyScreen.this.indexStartOffset;
-                        if (!PartyScreen.this.availablePlayers.isEmpty() && PartyScreen.this.availablePlayers.size() >= index) {
+                        if (!PartyScreen.this.availablePlayers.isEmpty() && PartyScreen.this.availablePlayers.size() > index) {
                             playerId = PartyScreen.this.availablePlayers.get(index);
                         }
                     }

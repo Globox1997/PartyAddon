@@ -2,6 +2,7 @@ package net.partyaddon.config;
 
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
+import me.shedaniel.autoconfig.annotation.ConfigEntry;
 import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 
 @Config(name = "partyaddon")
@@ -18,8 +19,10 @@ public class PartyAddonConfig implements ConfigData {
     public float fullGroupBonus = 0.5f;
 
     public boolean showGroupHud = true; // Client only
+    public float hudScale = 1.0f; // Client only
     public int hudMaxWidth = 55; // Client only
-    public float hudOpacity = 0.75f; // Client only
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    public float hudOpacity = 75; // Client only
     public int hudPosX = 0; // Client only
     public int hudPosY = 0; // Client only
 }

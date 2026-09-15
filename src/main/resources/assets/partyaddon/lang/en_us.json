@@ -6,6 +6,8 @@
     "text.autoconfig.partyaddon.option.fullGroupBonus": "Full Group Bonus",
     "text.autoconfig.partyaddon.option.hudPosX": "Hud Pos X",
     "text.autoconfig.partyaddon.option.hudPosY": "Hud Pos Y",
+    "text.autoconfig.partyaddon.option.hudMaxWidth": "Hud Max Width",
+    "text.autoconfig.partyaddon.option.hudScale": "Hud Scale",
     "text.autoconfig.partyaddon.option.hudOpacity": "Hud Opacity",
     "text.autoconfig.partyaddon.option.showGroupHud": "Show Group Hud",
     "text.autoconfig.partyaddon.option.distributeVanillaXP": "Distribute Vanilla XP",
@@ -35,6 +37,9 @@
     "text.partyaddon.kicked": "You got kicked from the group",
     "text.partyaddon.no_invitation": "You have no open invitation",
     "text.partyaddon.no_group": "You have no group to leave",
+    "text.partyaddon.cannot_invite_self": "You can not invite yourself",
+    "text.partyaddon.not_leader": "You are not the group leader",
+    "text.partyaddon.player_only_command": "Only online players can be invited",
 
     "text.partyaddon.hud.group": "Group",
     "text.partyaddon.hud.name": "Lv. %s %s",
