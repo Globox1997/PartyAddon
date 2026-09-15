@@ -9,6 +9,7 @@
     "text.autoconfig.partyaddon.option.hudMaxWidth": "Hud Max Width",
     "text.autoconfig.partyaddon.option.hudScale": "Hud Scale",
     "text.autoconfig.partyaddon.option.hudOpacity": "Hud Opacity",
+    "text.autoconfig.partyaddon.option.hideOwnPlayer": "Hide Own Player",
     "text.autoconfig.partyaddon.option.showGroupHud": "Show Group Hud",
     "text.autoconfig.partyaddon.option.distributeVanillaXP": "Distribute Vanilla XP",
     "text.autoconfig.partyaddon.option.distributeLevelZXP": "Distribute LevelZ XP",

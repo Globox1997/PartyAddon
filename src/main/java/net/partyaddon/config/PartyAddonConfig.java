@@ -22,7 +22,8 @@ public class PartyAddonConfig implements ConfigData {
     public float hudScale = 1.0f; // Client only
     public int hudMaxWidth = 55; // Client only
     @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
-    public float hudOpacity = 75; // Client only
+    public int hudOpacity = 75; // Client only
     public int hudPosX = 0; // Client only
     public int hudPosY = 0; // Client only
+    public boolean hideOwnPlayer = false; // Client only
 }
