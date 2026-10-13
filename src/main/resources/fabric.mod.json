@@ -35,10 +35,8 @@
     "fabric-api": ">=${fabric_version}",
     "fabricloader": ">=${loader_version}",
     "cloth-config2": ">=${cloth_config_version}",
-    "levelz": "*"
-  },
-  "suggests": {
-    "another-mod": "*"
+    "levelz": ">=2.0.10",
+    "libz": ">=1.1.0"
   },
   "custom": {
     "mc-publish": {
