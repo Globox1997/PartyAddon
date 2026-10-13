@@ -4,7 +4,16 @@ PartyAddon is a mod addon for the [LevelZ](https://www.curseforge.com/minecraft/
 
 ### Installation
 
-PartyAddon is a mod built for the [Fabric Loader](https://fabricmc.net/). It requires [LevelZ](https://www.curseforge.com/minecraft/mc-mods/levelz) to be installed separately; all other dependencies are installed with the mod.
+PartyAddon is a mod built for the [Fabric Loader](https://fabricmc.net/). It requires [LevelZ](https://www.curseforge.com/minecraft/mc-mods/levelz) and its dependencies [LibZ](https://www.curseforge.com/minecraft/mc-mods/libz) and [Cloth Config](https://www.curseforge.com/minecraft/mc-mods/cloth-config) to be installed separately.
+
+### Commands
+`/party invite <player>`: Invite a player to your group
+`/party accept`: Accept open invitation
+`/party decline`: Decline open invitation  
+`/party leave`: Leave group
+`/party kick <player>`: Kick a group member (leader only)  
+`/party promote <player>`: Make a group member the new leader (leader only)  
+`/party list`: List your group members
 
 ### License
 
