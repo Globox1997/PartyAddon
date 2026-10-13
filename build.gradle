@@ -47,10 +47,6 @@ dependencies {
 	modCompileOnly ('maven.modrinth:clumps:19.0.0.1') {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
-	// WorldMap
-	modCompileOnly ('maven.modrinth:xaeros-world-map:fabric-1.21.1-1.46.0') {
-		exclude(group: "net.fabricmc.fabric-api")
-	}
 }
 
 processResources {
