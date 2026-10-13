@@ -1,7 +1,12 @@
 ### Added:
-- Invite command
+- Accept, decline, kick, promote and list commands
+- Shift click to promote in party screen
 ### Fixed:
-- Possible kick player exploit
-- Possible join group exploit
+- Hud hearts for distant members
+- screen crash with starred players and on search and scroll
+- Parties across dimensions
+- Leaderless group after leader left
+- Joining two groups at once
+- Invitation expiry spam
 ### Changed:
-- Tweaked the party hud
+- xp on uneven split
