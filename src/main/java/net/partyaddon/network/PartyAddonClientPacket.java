@@ -2,16 +2,13 @@ package net.partyaddon.network;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.BlockPos;
-import net.partyaddon.access.GroupManagerAccess;
-import net.partyaddon.group.GroupManager;
-import net.partyaddon.init.CompatInit;
+import net.partyaddon.group.ClientParty;
 import net.partyaddon.network.packet.*;
 import net.partyaddon.screen.PartyScreen;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +17,9 @@ import java.util.UUID;
 public class PartyAddonClientPacket {
 
     public static void init() {
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> client.execute(ClientParty::reset));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(ClientParty::reset));
+
         ClientPlayNetworking.registerGlobalReceiver(PartyScreenPacket.PACKET_ID, (payload, context) -> {
             context.client().execute(() -> {
                 context.client().setScreen(new PartyScreen());
@@ -29,8 +29,7 @@ public class PartyAddonClientPacket {
         ClientPlayNetworking.registerGlobalReceiver(SyncStarsPacket.PACKET_ID, (payload, context) -> {
             List<UUID> starPlayerIdList = payload.uuids();
             context.client().execute(() -> {
-                GroupManager groupManager = ((GroupManagerAccess) context.player()).getGroupManager();
-                groupManager.updateStarPlayerIdList(starPlayerIdList);
+                ClientParty.updateStars(starPlayerIdList);
             });
         });
 
@@ -40,35 +39,32 @@ public class PartyAddonClientPacket {
             List<UUID> groupPlayerIdList = payload.groupPlayerIdList();
             Optional<UUID> groupLeaderId = payload.groupLeaderId();
             context.client().execute(() -> {
-                GroupManager groupManager = ((GroupManagerAccess) context.player()).getGroupManager();
-                groupManager.setAvailablePlayerIdList(availablePlayerIdList);
-                groupManager.updateStarPlayerIdList(starPlayerIdList);
-                groupManager.updatePlayerGroupIdList(groupPlayerIdList, groupLeaderId.orElse(null));
+                ClientParty.updateGroup(availablePlayerIdList, starPlayerIdList, groupPlayerIdList, groupLeaderId.orElse(null));
             });
         });
 
         ClientPlayNetworking.registerGlobalReceiver(InvitePlayerPacket.PACKET_ID, (payload, context) -> {
             UUID playerId = payload.uuid();
             context.client().execute(() -> {
-                ((GroupManagerAccess) context.player()).getGroupManager().invitePlayerToGroup(playerId);
+                ClientParty.setInvitationPlayerId(playerId);
             });
         });
 
         ClientPlayNetworking.registerGlobalReceiver(DeclineInvitePacket.PACKET_ID, (payload, context) -> {
-            // int playerId = buf.readInt();
-            // maybe use playerId to send feedback?
-            Optional<UUID> uuid = payload.uuid();
             context.client().execute(() -> {
-                ((GroupManagerAccess) context.player()).getGroupManager().declineInvitation();
+                ClientParty.setInvitationPlayerId(null);
             });
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(MapPacket.PACKET_ID, (payload, context) -> {
-            List<UUID> groupPlayerUUIDs = payload.groupPlayerUUIDs();
-            List<BlockPos> groupPlayerBlockPoses = payload.groupPlayerBlockPoses();
-            List<Float> groupPlayerYaws = payload.groupPlayerYaws();
+        ClientPlayNetworking.registerGlobalReceiver(SyncSettingsPacket.PACKET_ID, (payload, context) -> {
             context.client().execute(() -> {
-                CompatInit.syncGroupToMap(context.client(), groupPlayerUUIDs, groupPlayerBlockPoses, groupPlayerYaws);
+                ClientParty.updateSettings(payload.groupSize(), payload.groupXpBonus(), payload.fullGroupBonus());
+            });
+        });
+
+        ClientPlayNetworking.registerGlobalReceiver(MemberHealthPacket.PACKET_ID, (payload, context) -> {
+            context.client().execute(() -> {
+                ClientParty.updateMemberHealth(payload.members());
             });
         });
     }
@@ -90,24 +86,20 @@ public class PartyAddonClientPacket {
         ClientPlayNetworking.send(new AcceptInvitePacket(invitationPlayerId));
     }
 
-    public static void writeC2SDeclineInvitationPacket(UUID entityId) {
-        ClientPlayNetworking.send(new DeclineInvitePacket(Optional.ofNullable(entityId)));
+    public static void writeC2SDeclineInvitationPacket(UUID invitationPlayerId) {
+        ClientPlayNetworking.send(new DeclineInvitePacket(Optional.ofNullable(invitationPlayerId)));
     }
 
     public static void writeC2SLeaveGroupPacket() {
         ClientPlayNetworking.send(new LeaveGroupPacket());
     }
 
-    public static void writeC2SKickPlayerPacket(UUID groupLeaderUuid, UUID kickPlayerUuid) {
-        ClientPlayNetworking.send(new KickPlayerPacket(groupLeaderUuid, kickPlayerUuid));
+    public static void writeC2SKickPlayerPacket(UUID kickPlayerUuid) {
+        ClientPlayNetworking.send(new KickPlayerPacket(kickPlayerUuid));
     }
 
-    public static void writeC2SSyncGroupMemberPacket(MinecraftClient client) {
-        ClientPlayNetworking.send(new SyncGroupPacket(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), Optional.empty()));
-    }
-
-    public static void writeC2SMapPacket() {
-        ClientPlayNetworking.send(new MapPacket(new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+    public static void writeC2SPromotePlayerPacket(UUID promotePlayerUuid) {
+        ClientPlayNetworking.send(new PromotePlayerPacket(promotePlayerUuid));
     }
 
 }

@@ -1,9 +1,14 @@
 package net.partyaddon.screen;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -20,14 +25,11 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
-import net.partyaddon.access.GroupManagerAccess;
-import net.partyaddon.group.GroupManager;
-import net.partyaddon.init.ConfigInit;
+import net.partyaddon.group.ClientParty;
 import net.partyaddon.init.RenderInit;
 import net.partyaddon.util.NameHelper;
 
@@ -36,17 +38,21 @@ public class PartyScreen extends Screen implements Tab {
 
     public static final Text title = Text.translatable("text.partyaddon.gui.title");
 
+    private static final int AVAILABLE_ROWS = 13;
+    private static final int GROUP_ROWS = 7;
+    private static final int ROW_HEIGHT = 13;
+    private static final int SCROLLBAR_HEIGHT = AVAILABLE_ROWS * ROW_HEIGHT;
+    private static final int SCROLLER_HEIGHT = 27;
+    private static final int NAME_WIDTH = 60;
+
     private int left;
     private int top;
 
-    private PlayerEntity playerEntity;
-    private GroupManager groupManager;
-
-    private List<UUID> availablePlayers;
+    private final List<UUID> availablePlayers = new ArrayList<UUID>();
+    private final Set<UUID> invitedPlayers = new HashSet<UUID>();
     private WidgetButtonPage[] availablePlayerButtons;
-    int indexStartOffset;
+    private int indexStartOffset;
     private boolean scrolling;
-    private int selectedIndex;
     private TextFieldWidget searchBox;
     private WidgetButtonPage acceptDeclineButton;
     private WidgetButtonPage[] groupPlayerButtons;
@@ -59,101 +65,119 @@ public class PartyScreen extends Screen implements Tab {
     protected void init() {
         this.left = this.width / 2 - 100;
         this.top = this.height / 2 - 108;
-        this.playerEntity = client.player;
-        this.groupManager = ((GroupManagerAccess) playerEntity).getGroupManager();
-        this.availablePlayers = new ArrayList<UUID>();
-        this.availablePlayers.addAll(groupManager.getAvailablePlayerIdList());
 
-        this.availablePlayerButtons = new WidgetButtonPage[13];
         this.acceptDeclineButton = this.addDrawableChild(new WidgetButtonPage(this.left + 109, this.top + 26, -1, button -> {
-            if (this.groupManager.getInvitationPlayerId() != null) {
-                PartyAddonClientPacket.writeC2SAcceptInvitationPacket(this.groupManager.getInvitationPlayerId());
-                this.acceptDeclineButton.active = false;
-                this.acceptDeclineButton.visible = false;
+            UUID invitationPlayerId = ClientParty.getInvitationPlayerId();
+            if (invitationPlayerId != null) {
+                PartyAddonClientPacket.writeC2SAcceptInvitationPacket(invitationPlayerId);
+                button.active = false;
+                button.visible = false;
             }
         }));
-        boolean acceptDeclineButton = this.groupManager.getInvitationPlayerId() != null && !this.groupManager.getGroupPlayerIdList().contains(this.groupManager.getInvitationPlayerId());
-        this.acceptDeclineButton.visible = acceptDeclineButton;
-        this.acceptDeclineButton.active = acceptDeclineButton;
-        if (acceptDeclineButton) {
-            this.acceptDeclineButton.setStar(this.groupManager.getStarPlayerIdList().contains(this.groupManager.getInvitationPlayerId()));
-        }
 
-        this.groupPlayerButtons = new WidgetButtonPage[ConfigInit.CONFIG.groupSize];
-        int o = this.top + 120;
-
+        this.groupPlayerButtons = new WidgetButtonPage[GROUP_ROWS];
         for (int i = 0; i < this.groupPlayerButtons.length; i++) {
-            // if (i < 7) {// && i < groupManager.getGroupPlayerIdList().size()
-            this.groupPlayerButtons[i] = this.addDrawableChild(new WidgetButtonPage(this.left + 109, o, -i - 2, button -> {
-                if (((WidgetButtonPage) button).getIndex() == -2) {
-                    PartyAddonClientPacket.writeC2SLeaveGroupPacket();
-                } else if (this.groupManager.isGroupLeader() && this.playerEntity != null) {
-                    PartyAddonClientPacket.writeC2SKickPlayerPacket(this.playerEntity.getUuid(), this.groupManager.getGroupPlayerIdList().get(Math.abs(((WidgetButtonPage) button).getIndex()) - 2));
-                }
-            }));
-            if (i < this.groupManager.getGroupPlayerIdList().size()) {
-                if (!this.groupManager.getStarPlayerIdList().isEmpty() && this.groupManager.getStarPlayerIdList().contains(this.groupManager.getGroupPlayerIdList().get(i))) {
-                    this.groupPlayerButtons[i].setStar(true);
-                }
-                if (this.groupManager.getGroupLeaderId().equals(this.groupManager.getGroupPlayerIdList().get(i))) {
-                    this.groupPlayerButtons[i].setLeader(true);
-                }
-            } else {
-                this.groupPlayerButtons[i].active = false;
-                this.groupPlayerButtons[i].visible = false;
-            }
-            if (i >= 7) {
-                this.groupPlayerButtons[i].active = false;
-                this.groupPlayerButtons[i].visible = false;
-            }
-            o += 13;
+            int row = i;
+            this.groupPlayerButtons[i] = this.addDrawableChild(new WidgetButtonPage(this.left + 109, this.top + 120 + i * ROW_HEIGHT, -i - 2, button -> onGroupButtonPress(row)));
         }
 
-        int k = this.top + 42;
-        for (int l = 0; l < this.availablePlayerButtons.length; ++l) {
-            this.availablePlayerButtons[l] = this.addDrawableChild(new WidgetButtonPage(this.left + 5, k, l, button -> {
-                this.selectedIndex = ((WidgetButtonPage) button).getIndex() + this.indexStartOffset;
-                if (NameHelper.isPlayerUUIDNotNull(client, this.availablePlayers.get(this.selectedIndex))) {
-                    PartyAddonClientPacket.writeC2SInvitePlayerToGroupPacket(this.availablePlayers.get(this.selectedIndex));
+        this.availablePlayerButtons = new WidgetButtonPage[AVAILABLE_ROWS];
+        for (int i = 0; i < this.availablePlayerButtons.length; i++) {
+            int row = i;
+            this.availablePlayerButtons[i] = this.addDrawableChild(new WidgetButtonPage(this.left + 5, this.top + 42 + i * ROW_HEIGHT, i, button -> {
+                UUID playerId = getAvailablePlayer(row);
+                if (playerId != null && NameHelper.isPlayerUUIDNotNull(this.client, playerId)) {
+                    PartyAddonClientPacket.writeC2SInvitePlayerToGroupPacket(playerId);
+                    this.invitedPlayers.add(playerId);
                     button.active = false;
                 }
             }));
-            if (!groupManager.getStarPlayerIdList().isEmpty()
-                    && groupManager.getStarPlayerIdList().contains(this.availablePlayers.get(this.availablePlayerButtons[l].getIndex() + this.indexStartOffset))) {
-                this.availablePlayerButtons[l].setStar(true);
-            }
-
-            k += 13;
         }
 
         this.searchBox = new TextFieldWidget(this.textRenderer, this.left + 5, this.top + 25, 93, 15, this.searchBox, Text.translatable("searchPlayer.search"));
-        this.searchBox.setChangedListener(searchString -> {
-
-            if (searchString.equals("")) {
-
-                groupManager.getAvailablePlayerIdList().forEach(id -> {
-                    if (!this.availablePlayers.contains(id)) {
-                        this.availablePlayers.add(id);
-                    }
-                });
-            } else {
-                for (int i = 0; i < groupManager.getAvailablePlayerIdList().size(); i++) {
-                    UUID id = groupManager.getAvailablePlayerIdList().get(i);
-                    if (!NameHelper.isPlayerUUIDNotNull(client, id)) {
-                        this.availablePlayers.remove((Object) id);
-                        continue;
-                    }
-                    if (NameHelper.getPlayerName(client, id, 0).getString().contains(searchString)) {
-                        if (!this.availablePlayers.contains(id))
-                            this.availablePlayers.add(id);
-                    } else {
-                        this.availablePlayers.remove((Object) id);
-                    }
-                }
-            }
-        });
+        this.searchBox.setChangedListener(searchString -> refreshAvailablePlayers());
         this.addSelectableChild(this.searchBox);
 
+        refreshAvailablePlayers();
+        updateButtons();
+    }
+
+    private void onGroupButtonPress(int row) {
+        List<UUID> groupPlayerIds = ClientParty.getGroupPlayerIds();
+        if (row >= groupPlayerIds.size()) {
+            return;
+        }
+        if (row == 0) {
+            PartyAddonClientPacket.writeC2SLeaveGroupPacket();
+        } else if (ClientParty.isGroupLeader(this.client)) {
+            if (Screen.hasShiftDown()) {
+                PartyAddonClientPacket.writeC2SPromotePlayerPacket(groupPlayerIds.get(row));
+            } else {
+                PartyAddonClientPacket.writeC2SKickPlayerPacket(groupPlayerIds.get(row));
+            }
+        }
+    }
+
+    @Nullable
+    private UUID getAvailablePlayer(int row) {
+        int index = row + this.indexStartOffset;
+        return index >= 0 && index < this.availablePlayers.size() ? this.availablePlayers.get(index) : null;
+    }
+
+    @Nullable
+    private UUID getGroupPlayer(int row) {
+        List<UUID> groupPlayerIds = ClientParty.getGroupPlayerIds();
+        return row >= 0 && row < groupPlayerIds.size() ? groupPlayerIds.get(row) : null;
+    }
+
+    private void refreshAvailablePlayers() {
+        String search = this.searchBox == null ? "" : this.searchBox.getText().trim().toLowerCase(Locale.ROOT);
+        this.availablePlayers.clear();
+        for (UUID playerId : ClientParty.getAvailablePlayerIds()) {
+            if (!NameHelper.isPlayerUUIDNotNull(this.client, playerId)) {
+                continue;
+            }
+            if (!search.isEmpty() && !NameHelper.getPlayerName(this.client, playerId, 0).getString().toLowerCase(Locale.ROOT).contains(search)) {
+                continue;
+            }
+            this.availablePlayers.add(playerId);
+        }
+        this.indexStartOffset = MathHelper.clamp(this.indexStartOffset, 0, getMaxScrollOffset());
+    }
+
+    private void updateButtons() {
+        List<UUID> groupPlayerIds = ClientParty.getGroupPlayerIds();
+        List<UUID> starPlayerIds = ClientParty.getStarPlayerIds();
+        boolean canInvite = groupPlayerIds.isEmpty() || (ClientParty.isGroupLeader(this.client) && groupPlayerIds.size() < ClientParty.getGroupSize());
+
+        for (int i = 0; i < this.availablePlayerButtons.length; i++) {
+            WidgetButtonPage button = this.availablePlayerButtons[i];
+            UUID playerId = getAvailablePlayer(i);
+            button.visible = playerId != null;
+            if (playerId != null) {
+                button.active = canInvite && !groupPlayerIds.contains(playerId) && !this.invitedPlayers.contains(playerId);
+                button.setStar(starPlayerIds.contains(playerId));
+            }
+        }
+
+        UUID invitationPlayerId = ClientParty.getInvitationPlayerId();
+        boolean showInvitation = invitationPlayerId != null && !groupPlayerIds.contains(invitationPlayerId);
+        this.acceptDeclineButton.visible = showInvitation;
+        this.acceptDeclineButton.active = showInvitation;
+        if (showInvitation) {
+            this.acceptDeclineButton.setStar(starPlayerIds.contains(invitationPlayerId));
+        }
+
+        for (int i = 0; i < this.groupPlayerButtons.length; i++) {
+            WidgetButtonPage button = this.groupPlayerButtons[i];
+            UUID playerId = getGroupPlayer(i);
+            button.visible = playerId != null;
+            button.active = playerId != null;
+            if (playerId != null) {
+                button.setStar(i != 0 && starPlayerIds.contains(playerId));
+                button.setLeader(ClientParty.isGroupLeader(playerId));
+            }
+        }
     }
 
     @Override
@@ -163,6 +187,9 @@ public class PartyScreen extends Screen implements Tab {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        refreshAvailablePlayers();
+        updateButtons();
+
         super.render(context, mouseX, mouseY, delta);
 
         // Top label
@@ -171,115 +198,78 @@ public class PartyScreen extends Screen implements Tab {
         // Available player list label
         context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.player_list"), this.left + 5, this.top + 15, 0x3F3F3F, false);
 
-        this.availablePlayers.removeIf(id -> !NameHelper.isPlayerUUIDNotNull(client, id));
-
-        int k = this.top + 45;
-        this.renderScrollbar(context, this.left, this.top, this.availablePlayers);
-        int m = 0;
-        if (!this.availablePlayers.isEmpty()) {
-            for (int i = 0; i < this.availablePlayers.size(); i++) {
-                if (this.canScroll(this.availablePlayers.size()) && (m < this.indexStartOffset || m >= availablePlayerButtons.length + this.indexStartOffset)) {
-                    ++m;
-                    continue;
-                }
-
-                String playerName = NameHelper.getPlayerName(client, this.availablePlayers.get(i), 60).getString();
-                context.drawText(this.textRenderer, playerName, this.left + 10, k, 0xFFFFFF, false);
-                k += 13;
-                ++m;
+        for (int i = 0; i < this.availablePlayerButtons.length; i++) {
+            UUID playerId = getAvailablePlayer(i);
+            if (playerId == null) {
+                break;
             }
+            String playerName = NameHelper.getPlayerName(this.client, playerId, NAME_WIDTH).getString();
+            context.drawText(this.textRenderer, playerName, this.left + 10, this.top + 45 + i * ROW_HEIGHT, this.availablePlayerButtons[i].active ? 0xFFFFFF : 0xA0A0A0, false);
         }
-
-        for (WidgetButtonPage widgetButtonPage : this.availablePlayerButtons) {
-            if (widgetButtonPage.isHovered()) {
-                widgetButtonPage.renderTooltip(context, mouseX, mouseY);
-            }
-            widgetButtonPage.visible = widgetButtonPage.index < this.availablePlayers.size();
-            if (widgetButtonPage.visible) {
-                widgetButtonPage.setStar(groupManager.getStarPlayerIdList().contains(this.availablePlayers.get(widgetButtonPage.getIndex() + this.indexStartOffset)));
-            }
-        }
-
-        if (this.acceptDeclineButton.active && this.acceptDeclineButton.visible && this.acceptDeclineButton.isHovered()) {
-            this.acceptDeclineButton.renderTooltip(context, mouseX, mouseY);
-        }
+        this.renderScrollbar(context);
 
         // Invitation label
         context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.invitation"), this.left + 195 - this.textRenderer.getWidth(Text.translatable("text.partyaddon.gui.invitation")),
                 this.top + 16, 0x3F3F3F, false);
-
-        boolean acceptDeclineButton = this.groupManager.getInvitationPlayerId() != null && !this.groupManager.getGroupPlayerIdList().contains(this.groupManager.getInvitationPlayerId());
-        this.acceptDeclineButton.visible = acceptDeclineButton;
-        this.acceptDeclineButton.active = acceptDeclineButton;
-        if (acceptDeclineButton) {
-            this.acceptDeclineButton.setStar(this.groupManager.getStarPlayerIdList().contains(groupManager.getInvitationPlayerId()));
-
-            if (NameHelper.isPlayerUUIDNotNull(client, groupManager.getInvitationPlayerId())) {
-                String playerName = NameHelper.getPlayerName(client, groupManager.getInvitationPlayerId(), 60).getString();
-                context.drawText(this.textRenderer, playerName, this.left + 114, this.top + 29, 0xFFFFFF, false);
-            }
+        if (this.acceptDeclineButton.visible) {
+            String playerName = NameHelper.getPlayerName(this.client, ClientParty.getInvitationPlayerId(), NAME_WIDTH).getString();
+            context.drawText(this.textRenderer, playerName, this.left + 114, this.top + 29, 0xFFFFFF, false);
         }
+
         // Info label
         context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.info"), this.left + 195 - this.textRenderer.getWidth(Text.translatable("text.partyaddon.gui.info")), this.top + 43,
                 0x3F3F3F, false);
 
-        if (!this.groupManager.getGroupPlayerIdList().isEmpty()) {
-            context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.info_player_count", this.groupManager.getGroupPlayerIdList().size()), this.left + 109, this.top + 55, 0x3F3F3F,
-                    false);
-            if (ConfigInit.CONFIG.groupXpBonus > 0.0001f) {
-                context.drawText(this.textRenderer,
-                        Text.translatable("text.partyaddon.gui.info_experience", Math.round(ConfigInit.CONFIG.groupXpBonus * 100 * this.groupManager.getGroupPlayerIdList().size())), this.left + 109,
+        List<UUID> groupPlayerIds = ClientParty.getGroupPlayerIds();
+        int groupSize = groupPlayerIds.size();
+        if (groupSize > 0) {
+            context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.info_player_count", groupSize), this.left + 109, this.top + 55, 0x3F3F3F, false);
+            boolean hasXpBonus = ClientParty.getGroupXpBonus() > 0.0001f;
+            if (hasXpBonus) {
+                context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.info_experience", Math.round(ClientParty.getGroupXpBonus() * 100 * groupSize)), this.left + 109,
                         this.top + 67, 0x3F3F3F, false);
             }
-            if (this.groupManager.getGroupPlayerIdList().size() == ConfigInit.CONFIG.groupSize && ConfigInit.CONFIG.fullGroupBonus >= 0.0001f) {
-                context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.full_group_bonus").formatted(Formatting.DARK_GREEN), this.left + 109,
-                        this.top + 83 - (ConfigInit.CONFIG.groupXpBonus > 0.0001f ? 0 : 16), 0x3F3F3F, false);
-                context.drawText(this.textRenderer,
-                        Text.translatable("text.partyaddon.gui.full_group_bonus_amount", Math.round(ConfigInit.CONFIG.fullGroupBonus * 100)).formatted(Formatting.DARK_GREEN), this.left + 109,
-                        this.top + 95, 0x3F3F3F, false);
+            if (groupSize >= ClientParty.getGroupSize() && ClientParty.getFullGroupBonus() >= 0.0001f) {
+                int fullGroupY = this.top + (hasXpBonus ? 83 : 67);
+                context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.full_group_bonus").formatted(Formatting.DARK_GREEN), this.left + 109, fullGroupY, 0x3F3F3F, false);
+                context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.full_group_bonus_amount", Math.round(ClientParty.getFullGroupBonus() * 100)).formatted(Formatting.DARK_GREEN),
+                        this.left + 109, fullGroupY + 12, 0x3F3F3F, false);
             }
         } else {
             context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.empty_info"), this.left + 109, this.top + 55, 0x3F3F3F, false);
         }
 
         // Group label
-        context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.group"), this.left + 195 - this.textRenderer.getWidth(Text.translatable("text.partyaddon.gui.group")),
-                this.top + 110, 0x3F3F3F, false);
-        int g = 0;
-        for (int i = 0; i < ConfigInit.CONFIG.groupSize; i++) {
-            if (i < this.groupManager.getGroupPlayerIdList().size() && NameHelper.isPlayerUUIDNotNull(client, this.groupManager.getGroupPlayerIdList().get(i))) {
-                UUID playerId = this.groupManager.getGroupPlayerIdList().get(i);
-
-                this.groupPlayerButtons[i].active = true;
-                this.groupPlayerButtons[i].visible = true;
-
-                String playerName = NameHelper.getPlayerName(client, playerId, 60).getString();
-                context.drawText(this.textRenderer, playerName, this.left + 114, this.top + 123 + g, 0xFFFFFF, false);
-
-                if (i != 0) {
-                    this.groupPlayerButtons[i].setStar(this.groupManager.getStarPlayerIdList().contains(playerId));
-                }
-                if (i != 0 && this.groupManager.isGroupLeader()) {
-                    context.drawTexture(RenderInit.PARTY_ADDON_GUI_ICONS, this.left + 176, this.top + 123 + g, 21, 32, 7, 7);
-                }
-                if (this.groupPlayerButtons[i].isLeader()) {
-                    if (!this.groupManager.getGroupLeaderId().equals(playerId)) {
-                        this.groupPlayerButtons[i].setLeader(false);
-                    }
-                } else {
-                    if (this.groupManager.getGroupLeaderId().equals(playerId)) {
-                        this.groupPlayerButtons[i].setLeader(true);
-                    }
-                }
-                g += 13;
-
-            } else {
-                this.groupPlayerButtons[i].active = false;
-                this.groupPlayerButtons[i].visible = false;
+        Text groupLabel = groupSize > GROUP_ROWS ? Text.translatable("text.partyaddon.gui.group_more", groupSize - GROUP_ROWS) : Text.translatable("text.partyaddon.gui.group");
+        context.drawText(this.textRenderer, groupLabel, this.left + 195 - this.textRenderer.getWidth(groupLabel), this.top + 110, 0x3F3F3F, false);
+        boolean isGroupLeader = ClientParty.isGroupLeader(this.client);
+        for (int i = 0; i < this.groupPlayerButtons.length; i++) {
+            UUID playerId = getGroupPlayer(i);
+            if (playerId == null) {
+                break;
+            }
+            String playerName = NameHelper.getPlayerName(this.client, playerId, NAME_WIDTH).getString();
+            context.drawText(this.textRenderer, playerName, this.left + 114, this.top + 123 + i * ROW_HEIGHT, 0xFFFFFF, false);
+            if (i != 0 && isGroupLeader) {
+                context.drawTexture(RenderInit.PARTY_ADDON_GUI_ICONS, this.left + 176, this.top + 123 + i * ROW_HEIGHT, 21, 32, 7, 7);
             }
         }
         this.searchBox.render(context, mouseX, mouseY, delta);
-        DrawTabHelper.drawTab(client, context, this, this.left, this.top, mouseX, mouseY);
+        DrawTabHelper.drawTab(this.client, context, this, this.left, this.top, mouseX, mouseY);
+
+        renderButtonTooltip(context, this.acceptDeclineButton, mouseX, mouseY);
+        for (WidgetButtonPage button : this.availablePlayerButtons) {
+            renderButtonTooltip(context, button, mouseX, mouseY);
+        }
+        for (WidgetButtonPage button : this.groupPlayerButtons) {
+            renderButtonTooltip(context, button, mouseX, mouseY);
+        }
+    }
+
+    private void renderButtonTooltip(DrawContext context, WidgetButtonPage button, int mouseX, int mouseY) {
+        if (button.visible && button.isHovered()) {
+            button.renderTooltip(context, mouseX, mouseY);
+        }
     }
 
     @Override
@@ -313,55 +303,46 @@ public class PartyScreen extends Screen implements Tab {
         }
 
         this.scrolling = false;
-        int i = (this.width - 200) / 2;
-        int j = (this.height - 216) / 2;
-        if (this.canScroll(this.availablePlayers.size()) && mouseX > (double) (i + 94) && mouseX < (double) (i + 94 + 6) && mouseY > (double) (j + 18) && mouseY <= (double) (j + 18 + 139 + 1)) {
+        if (getMaxScrollOffset() > 0 && mouseX >= this.left + 92 && mouseX < this.left + 98 && mouseY >= this.top + 42 && mouseY < this.top + 42 + SCROLLBAR_HEIGHT) {
             this.scrolling = true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private boolean canScroll(int listSize) {
-        return listSize > availablePlayerButtons.length;
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        this.scrolling = false;
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    private int getMaxScrollOffset() {
+        return Math.max(0, this.availablePlayers.size() - AVAILABLE_ROWS);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        int i = this.availablePlayers.size();
-        if (this.canScroll(i)) {
-            int j = i - availablePlayerButtons.length;
-            this.indexStartOffset = MathHelper.clamp((int) ((double) this.indexStartOffset - verticalAmount), 0, j);
-        }
+        this.indexStartOffset = MathHelper.clamp((int) ((double) this.indexStartOffset - verticalAmount), 0, getMaxScrollOffset());
         return true;
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        int i = this.availablePlayers.size();
         if (this.scrolling) {
-            int j = this.top + 18;
-            int k = j + 139;
-            int l = i - availablePlayerButtons.length;
-            float f = ((float) mouseY - (float) j - 13.5f) / ((float) (k - j) - 27.0f);
-            f = f * (float) l + 0.5f;
-            this.indexStartOffset = MathHelper.clamp((int) f, 0, l);
+            int maxScrollOffset = getMaxScrollOffset();
+            float f = ((float) mouseY - (float) (this.top + 42) - SCROLLER_HEIGHT / 2.0f) / (float) (SCROLLBAR_HEIGHT - SCROLLER_HEIGHT);
+            this.indexStartOffset = MathHelper.clamp(Math.round(f * maxScrollOffset), 0, maxScrollOffset);
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
-    private void renderScrollbar(DrawContext context, int x, int y, List<UUID> availablePlayers) {
-        int i = availablePlayers.size() + 1 - availablePlayerButtons.length;
-        if (i > 1) {
-            int j = 167 - (27 + (i - 1) * 167 / i);
-            int k = 1 + j / i + 167 / i;
-            int m = Math.min(142, this.indexStartOffset * k);
-            if (this.indexStartOffset == i - 1) {
-                m = 142;
-            }
-            context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, x + 92, y + 42 + m, 200, 0, 6, 27);
+    private void renderScrollbar(DrawContext context) {
+        int maxScrollOffset = getMaxScrollOffset();
+        if (maxScrollOffset > 0) {
+            int scrollerY = (SCROLLBAR_HEIGHT - SCROLLER_HEIGHT) * this.indexStartOffset / maxScrollOffset;
+            context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.left + 92, this.top + 42 + scrollerY, 200, 0, 6, SCROLLER_HEIGHT);
         } else {
-            context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, x + 92, y + 42, 206, 0, 6, 27);
+            context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.left + 92, this.top + 42, 206, 0, 6, SCROLLER_HEIGHT);
         }
     }
 
@@ -396,28 +377,30 @@ public class PartyScreen extends Screen implements Tab {
             return this.leader;
         }
 
+        @Nullable
+        private UUID getPlayerId() {
+            if (this.index == -1) {
+                return ClientParty.getInvitationPlayerId();
+            } else if (this.index < -1) {
+                return PartyScreen.this.getGroupPlayer(-this.index - 2);
+            }
+            return PartyScreen.this.getAvailablePlayer(this.index);
+        }
+
+        private boolean isWithinBounds(double mouseX, double mouseY) {
+            return mouseX >= this.getX() && mouseY >= this.getY() && mouseX < this.getX() + this.width && mouseY < this.getY() + this.height;
+        }
+
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            if (this.visible && this.active && button == 1 && this.isHovered()) {
+            if (this.visible && button == 1 && this.isWithinBounds(mouseX, mouseY)) {
+                UUID playerId = this.getPlayerId();
                 if (this.getIndex() == -1) {
-                    if (PartyScreen.this.groupManager.getInvitationPlayerId() != null) {
-                        PartyAddonClientPacket.writeC2SDeclineInvitationPacket(PartyScreen.this.groupManager.getInvitationPlayerId());
+                    if (this.active && playerId != null) {
+                        PartyAddonClientPacket.writeC2SDeclineInvitationPacket(playerId);
                     }
                     this.active = false;
-                } else if (this.getIndex() != -2) {
-                    UUID playerId = null;
-
-                    if (this.getIndex() < -1) {
-                        int index = Math.abs(this.getIndex()) - 2;
-                        if (!PartyScreen.this.groupManager.getGroupPlayerIdList().isEmpty() && PartyScreen.this.groupManager.getGroupPlayerIdList().size() > index) {
-                            playerId = PartyScreen.this.groupManager.getGroupPlayerIdList().get(index);
-                        }
-                    } else {
-                        int index = this.getIndex() + PartyScreen.this.indexStartOffset;
-                        if (!PartyScreen.this.availablePlayers.isEmpty() && PartyScreen.this.availablePlayers.size() > index) {
-                            playerId = PartyScreen.this.availablePlayers.get(index);
-                        }
-                    }
+                } else if (this.getIndex() != -2 && playerId != null) {
                     this.setStar(!this.isStar());
                     PartyAddonClientPacket.writeC2SChangeStarListPacket(playerId);
                 }
@@ -441,46 +424,37 @@ public class PartyScreen extends Screen implements Tab {
                 context.drawTexture(RenderInit.PARTY_ADDON_GUI_ICONS, this.getX() + 67, this.getY() + 3, 0, 32, 7, 7);
             }
 
-            // this.renderBackground(context, client, mouseX, mouseY);
             int j = this.active ? 0xFFFFFF : 0xA0A0A0;
             context.drawCenteredTextWithShadow(textRenderer, this.getMessage(), this.getX() + this.width / 2, this.getY() + (this.height - 8) / 2, j | MathHelper.ceil(this.alpha * 255.0f) << 24);
-
-            if (this.isHovered()) {
-                this.renderTooltip(context, mouseX, mouseY);
-            }
         }
 
         public void renderTooltip(DrawContext context, int mouseX, int mouseY) {
-            if (this.hovered && this.active) {
-
-                UUID playerId = null;
-                if (this.getIndex() == -1) {
-                    if (NameHelper.isPlayerUUIDNotNull(client, PartyScreen.this.groupManager.getInvitationPlayerId())) {
-                        playerId = PartyScreen.this.groupManager.getInvitationPlayerId();
-                    }
-                } else {
-                    if (this.getIndex() < -1) {
-                        int index = Math.abs(this.index) - 2;
-                        if (!PartyScreen.this.groupManager.getGroupPlayerIdList().isEmpty() && PartyScreen.this.groupManager.getGroupPlayerIdList().size() > index) {
-                            playerId = PartyScreen.this.groupManager.getGroupPlayerIdList().get(index);
-                        }
-                    } else {
-                        int index = this.index + PartyScreen.this.indexStartOffset;
-                        if (!PartyScreen.this.availablePlayers.isEmpty() && PartyScreen.this.availablePlayers.size() > index) {
-                            playerId = PartyScreen.this.availablePlayers.get(index);
-                        }
-                    }
-                }
-
-                if (playerId != null) {
-                    if (NameHelper.isPlayerUUIDNotNull(client, playerId)) {
-                        String playerName = NameHelper.getPlayerName(client, playerId, 0).getString();
-                        if (PartyScreen.this.textRenderer.getWidth(playerName) > 60) {
-                            context.drawTooltip(textRenderer, Text.of(playerName), mouseX, mouseY);
-                        }
-                    }
+            List<Text> lines = new ArrayList<Text>();
+            UUID playerId = this.getPlayerId();
+            if (playerId != null && NameHelper.isPlayerUUIDNotNull(client, playerId)) {
+                String playerName = NameHelper.getPlayerName(client, playerId, 0).getString();
+                if (PartyScreen.this.textRenderer.getWidth(playerName) > NAME_WIDTH) {
+                    lines.add(Text.of(playerName));
                 }
             }
+            if (this.index == -1) {
+                lines.add(Text.translatable("text.partyaddon.gui.hint_accept").formatted(Formatting.GRAY));
+                lines.add(Text.translatable("text.partyaddon.gui.hint_decline").formatted(Formatting.GRAY));
+            } else if (this.index == -2) {
+                lines.add(Text.translatable("text.partyaddon.gui.hint_leave").formatted(Formatting.GRAY));
+            } else if (this.index < -1) {
+                if (ClientParty.isGroupLeader(client)) {
+                    lines.add(Text.translatable("text.partyaddon.gui.hint_kick").formatted(Formatting.GRAY));
+                    lines.add(Text.translatable("text.partyaddon.gui.hint_promote").formatted(Formatting.GRAY));
+                }
+                lines.add(Text.translatable("text.partyaddon.gui.hint_star").formatted(Formatting.GRAY));
+            } else {
+                if (this.active) {
+                    lines.add(Text.translatable("text.partyaddon.gui.hint_invite").formatted(Formatting.GRAY));
+                }
+                lines.add(Text.translatable("text.partyaddon.gui.hint_star").formatted(Formatting.GRAY));
+            }
+            context.drawTooltip(client.textRenderer, lines, mouseX, mouseY);
         }
 
         private int getTextureY() {

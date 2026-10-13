@@ -54,6 +54,6 @@ public final class NameHelper {
     }
 
     public static boolean isPlayerUUIDNotNull(MinecraftClient client, UUID playerId) {
-        return client.getNetworkHandler().getPlayerListEntry(playerId) != null;
+        return playerId != null && client.getNetworkHandler() != null && client.getNetworkHandler().getPlayerListEntry(playerId) != null;
     }
 }

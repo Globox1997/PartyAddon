@@ -8,9 +8,11 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
-import net.partyaddon.access.GroupManagerAccess;
+import net.partyaddon.group.ClientParty;
 import net.partyaddon.init.ConfigInit;
 import net.partyaddon.init.RenderInit;
+import net.partyaddon.network.packet.MemberHealthPacket.MemberHealth;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,8 +34,7 @@ public class PartyRenderHelper {
             return;
         }
 
-        GroupManagerAccess access = (GroupManagerAccess) client.player;
-        List<UUID> allIds = access.getGroupManager().getGroupPlayerIdList();
+        List<UUID> allIds = ClientParty.getGroupPlayerIds();
         if (allIds.isEmpty()) {
             return;
         }
@@ -63,11 +64,11 @@ public class PartyRenderHelper {
         maxWidth = Math.max(maxWidth, HEART_WIDTH);
 
         int[] heartRows = new int[groupPlayerIdList.size()];
+        MemberHealth[] memberHealths = new MemberHealth[groupPlayerIdList.size()];
         int totalHeight = 0;
         for (int i = 0; i < groupPlayerIdList.size(); i++) {
-            UUID uuid = groupPlayerIdList.get(i);
-            PlayerEntity p = client.world != null ? client.world.getPlayerByUuid(uuid) : null;
-            int rows = getHeartRowCount(p, maxWidth);
+            memberHealths[i] = getMemberHealth(client, groupPlayerIdList.get(i));
+            int rows = getHeartRowCount(memberHealths[i], maxWidth);
             heartRows[i] = rows;
             int heartBlockHeight = heartBlockHeight(rows);
             totalHeight += client.textRenderer.fontHeight + 1 + heartBlockHeight + PLAYER_SPACING;
@@ -106,12 +107,9 @@ public class PartyRenderHelper {
 
         int o = 0;
         for (int i = 0; i < groupPlayerNames.size(); i++) {
-            UUID playerId = groupPlayerIdList.get(i);
-
             context.drawText(client.textRenderer, groupPlayerNames.get(i), 5, 5 + o, 0xE6C0C0C0, false);
 
-            PlayerEntity groupMember = client.world != null ? client.world.getPlayerByUuid(playerId) : null;
-            drawHealthHearts(context, groupMember, 5, 5 + o + client.textRenderer.fontHeight + 1, maxWidth, opacity);
+            drawHealthHearts(context, memberHealths[i], 5, 5 + o + client.textRenderer.fontHeight + 1, maxWidth, opacity);
 
             int heartBlockHeight = heartBlockHeight(heartRows[i]);
             o += client.textRenderer.fontHeight + 1 + heartBlockHeight + PLAYER_SPACING;
@@ -122,13 +120,23 @@ public class PartyRenderHelper {
         context.getMatrices().pop();
     }
 
-    private static void drawHealthHearts(DrawContext context, PlayerEntity player, int x, int y, int maxWidth, float opacity) {
-        if (player == null || !player.isAlive()) {
+    @Nullable
+    private static MemberHealth getMemberHealth(MinecraftClient client, UUID playerId) {
+        PlayerEntity player = client.world != null ? client.world.getPlayerByUuid(playerId) : null;
+        MemberHealth memberHealth = player != null ? new MemberHealth(playerId, player.getHealth(), player.getMaxHealth()) : ClientParty.getMemberHealth(playerId);
+        if (memberHealth == null || memberHealth.health() <= 0.0f || memberHealth.maxHealth() <= 0.0f) {
+            return null;
+        }
+        return memberHealth;
+    }
+
+    private static void drawHealthHearts(DrawContext context, @Nullable MemberHealth memberHealth, int x, int y, int maxWidth, float opacity) {
+        if (memberHealth == null) {
             return;
         }
 
-        float maxHealth = player.getMaxHealth();
-        float health = MathHelper.clamp(player.getHealth(), 0.0f, maxHealth);
+        float maxHealth = memberHealth.maxHealth();
+        float health = MathHelper.clamp(memberHealth.health(), 0.0f, maxHealth);
 
         int maxHearts = MathHelper.ceil(maxHealth / 2.0f);
         int fullHearts = MathHelper.floor(health / 2.0f);
@@ -189,11 +197,11 @@ public class PartyRenderHelper {
         return HEART_WIDTH + (rows - 1) * (HEART_WIDTH - HEART_ROW_OVERLAP);
     }
 
-    private static int getHeartRowCount(PlayerEntity player, int maxWidth) {
-        if (player == null || !player.isAlive()) {
+    private static int getHeartRowCount(@Nullable MemberHealth memberHealth, int maxWidth) {
+        if (memberHealth == null) {
             return 0;
         }
-        int maxHearts = MathHelper.ceil(player.getMaxHealth() / 2.0f);
+        int maxHearts = MathHelper.ceil(memberHealth.maxHealth() / 2.0f);
         if (maxHearts <= 0) {
             return 0;
         }
