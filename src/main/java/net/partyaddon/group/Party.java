@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.partyaddon.network.packet.MemberHealthPacket.MemberHealth;
 
 public class Party {
 
@@ -15,6 +16,8 @@ public class Party {
 
     private double vanillaExperiencePool = 0.0D;
     private double levelZExperiencePool = 0.0D;
+
+    private List<MemberHealth> lastSentMemberHealths = List.of();
 
     public Party(UUID leaderId) {
         this.leaderId = leaderId;
@@ -91,6 +94,18 @@ public class Party {
         int share = (int) (this.levelZExperiencePool / recipients);
         this.levelZExperiencePool -= (double) share * recipients;
         return share;
+    }
+
+    public boolean updateSentMemberHealths(List<MemberHealth> memberHealths) {
+        if (this.lastSentMemberHealths.equals(memberHealths)) {
+            return false;
+        }
+        this.lastSentMemberHealths = List.copyOf(memberHealths);
+        return true;
+    }
+
+    public void resetSentMemberHealths() {
+        this.lastSentMemberHealths = List.of();
     }
 
     public static double getExperienceMultiplier(int partySize, int groupSize, float groupXpBonus, float fullGroupBonus) {

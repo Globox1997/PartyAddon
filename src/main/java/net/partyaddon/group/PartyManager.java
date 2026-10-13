@@ -319,6 +319,9 @@ public final class PartyManager {
                 for (ServerPlayerEntity member : members) {
                     memberHealths.add(new MemberHealth(member.getUuid(), member.getHealth(), member.getMaxHealth()));
                 }
+                if (!party.updateSentMemberHealths(memberHealths)) {
+                    continue;
+                }
                 for (ServerPlayerEntity member : members) {
                     PartyAddonServerPacket.writeS2CMemberHealthPacket(member, memberHealths);
                 }
@@ -340,6 +343,7 @@ public final class PartyManager {
     }
 
     private static void syncParty(MinecraftServer server, Party party) {
+        party.resetSentMemberHealths();
         for (ServerPlayerEntity member : party.getOnlineMembers(server)) {
             syncPlayer(member);
         }
