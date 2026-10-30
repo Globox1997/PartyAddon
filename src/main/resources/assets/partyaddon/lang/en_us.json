@@ -67,5 +67,8 @@
 
     "text.partyaddon.hud.group": "Group",
     "text.partyaddon.hud.name": "Lv. %s %s",
-    "text.partyaddon.hud.empty_name": "-"
+    "text.partyaddon.hud.empty_name": "-",
+
+    "category.partyaddon.keybind": "PartyAddon Keybinds",
+    "key.partyaddon.openpartyscreen": "Party Screen"
 }
