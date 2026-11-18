@@ -83,7 +83,7 @@ public final class PartyManager {
             inviter.sendSystemMessage(Component.translatable("text.partyaddon.already_invited", invited.getName().getString()));
             return;
         }
-        MinecraftServer server = inviter.getServer();
+        MinecraftServer server = inviter.level().getServer();
         INVITATIONS.put(invited.getUUID(), new Invitation(inviter.getUUID(), server.getTickCount() + Math.max(1, ConfigInit.CONFIG.invitationTime)));
 
         if (pending != null) {
@@ -108,7 +108,7 @@ public final class PartyManager {
         INVITATIONS.remove(player.getUUID());
         PartyAddonServerPacket.writeS2CSyncDeclinePacket(player, null);
 
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         ServerPlayer inviter = server.getPlayerList().getPlayer(invitation.inviterId());
         if (inviter == null) {
             player.sendSystemMessage(Component.translatable("text.partyaddon.no_invitation"));
@@ -156,7 +156,7 @@ public final class PartyManager {
         }
         INVITATIONS.remove(player.getUUID());
 
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         ServerPlayer inviter = server.getPlayerList().getPlayer(invitation.inviterId());
         if (inviter != null) {
             inviter.sendSystemMessage(Component.translatable("text.partyaddon.declined_invitation", player.getName().getString()));
@@ -183,7 +183,7 @@ public final class PartyManager {
             leader.sendSystemMessage(Component.translatable("text.partyaddon.cannot_kick_self"));
             return;
         }
-        ServerPlayer target = leader.getServer().getPlayerList().getPlayer(targetId);
+        ServerPlayer target = leader.level().getServer().getPlayerList().getPlayer(targetId);
         if (target == null || !party.contains(targetId)) {
             leader.sendSystemMessage(Component.translatable("text.partyaddon.not_in_group"));
             return;
@@ -204,7 +204,7 @@ public final class PartyManager {
             leader.sendSystemMessage(Component.translatable("text.partyaddon.not_in_group"));
             return;
         }
-        MinecraftServer server = leader.getServer();
+        MinecraftServer server = leader.level().getServer();
         party.setLeaderId(targetId);
         for (ServerPlayer member : party.getOnlineMembers(server)) {
             member.sendSystemMessage(Component.translatable("text.partyaddon.new_leader", getName(server, targetId)));
@@ -218,7 +218,7 @@ public final class PartyManager {
             player.sendSystemMessage(Component.translatable("text.partyaddon.no_group"));
             return;
         }
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         MutableComponent members = Component.empty();
         for (int i = 0; i < party.size(); i++) {
             UUID memberId = party.getMemberIds().get(i);
@@ -237,7 +237,7 @@ public final class PartyManager {
     // Star stuff
     public static void toggleStar(ServerPlayer player, UUID targetId) {
         Set<UUID> stars = STARS.computeIfAbsent(player.getUUID(), id -> new LinkedHashSet<UUID>());
-        if (!stars.remove(targetId) && !targetId.equals(player.getUUID()) && player.getServer().getPlayerList().getPlayer(targetId) != null) {
+        if (!stars.remove(targetId) && !targetId.equals(player.getUUID()) && player.level().getServer().getPlayerList().getPlayer(targetId) != null) {
             stars.add(targetId);
         }
         PartyAddonServerPacket.writeS2CSyncStarPlayerListPacket(player, getStarIds(player.getUUID()));
@@ -254,7 +254,7 @@ public final class PartyManager {
         if (party == null || experience <= 0) {
             return false;
         }
-        List<ServerPlayer> members = party.getOnlineMembers(collector.getServer());
+        List<ServerPlayer> members = party.getOnlineMembers(collector.level().getServer());
         if (members.isEmpty()) {
             return false;
         }
@@ -272,7 +272,7 @@ public final class PartyManager {
         if (party == null || experience <= 0) {
             return false;
         }
-        List<ServerPlayer> members = party.getOnlineMembers(collector.getServer());
+        List<ServerPlayer> members = party.getOnlineMembers(collector.level().getServer());
         if (members.isEmpty()) {
             return false;
         }
@@ -296,7 +296,7 @@ public final class PartyManager {
     }
 
     public static void onDisconnect(ServerPlayer player) {
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         Invitation ownInvitation = INVITATIONS.remove(player.getUUID());
         if (ownInvitation != null) {
             syncOutgoingInvitations(server, ownInvitation.inviterId());
@@ -374,7 +374,7 @@ public final class PartyManager {
     public static void syncPlayer(ServerPlayer player) {
         Party party = getParty(player.getUUID());
         List<UUID> availablePlayerIds = new ArrayList<UUID>();
-        for (ServerPlayer serverPlayerEntity : player.getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer serverPlayerEntity : player.level().getServer().getPlayerList().getPlayers()) {
             if (!serverPlayerEntity.getUUID().equals(player.getUUID())) {
                 availablePlayerIds.add(serverPlayerEntity.getUUID());
             }
@@ -412,7 +412,7 @@ public final class PartyManager {
         if (party == null) {
             return;
         }
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = player.level().getServer();
         boolean wasLeader = party.isLeader(player.getUUID());
         party.removeMember(player.getUUID());
 

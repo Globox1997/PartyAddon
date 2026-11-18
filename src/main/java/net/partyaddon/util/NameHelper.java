@@ -34,7 +34,7 @@ public final class NameHelper {
                 if (display != null) {
                     return display;
                 }
-                return PlayerTeam.formatNameForTeam(entry.getTeam(), Component.literal(entry.getProfile().getName()));
+                return PlayerTeam.formatNameForTeam(entry.getTeam(), Component.literal(entry.getProfile().name()));
             }
         }
 

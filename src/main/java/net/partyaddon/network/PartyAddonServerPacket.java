@@ -16,23 +16,23 @@ import java.util.UUID;
 public class PartyAddonServerPacket {
 
     public static void init() {
-        PayloadTypeRegistry.playS2C().register(PartyScreenPacket.PACKET_ID, PartyScreenPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playS2C().register(SyncStarsPacket.PACKET_ID, SyncStarsPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playS2C().register(SyncGroupPacket.PACKET_ID, SyncGroupPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playS2C().register(InvitePlayerPacket.PACKET_ID, InvitePlayerPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playS2C().register(DeclineInvitePacket.PACKET_ID, DeclineInvitePacket.PACKET_CODEC);
-        PayloadTypeRegistry.playS2C().register(SyncSettingsPacket.PACKET_ID, SyncSettingsPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playS2C().register(MemberHealthPacket.PACKET_ID, MemberHealthPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playS2C().register(SyncPendingInvitationsPacket.PACKET_ID, SyncPendingInvitationsPacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PartyScreenPacket.PACKET_ID, PartyScreenPacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(SyncStarsPacket.PACKET_ID, SyncStarsPacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(SyncGroupPacket.PACKET_ID, SyncGroupPacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(InvitePlayerPacket.PACKET_ID, InvitePlayerPacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(DeclineInvitePacket.PACKET_ID, DeclineInvitePacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(SyncSettingsPacket.PACKET_ID, SyncSettingsPacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(MemberHealthPacket.PACKET_ID, MemberHealthPacket.PACKET_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(SyncPendingInvitationsPacket.PACKET_ID, SyncPendingInvitationsPacket.PACKET_CODEC);
 
-        PayloadTypeRegistry.playC2S().register(PartyScreenPacket.PACKET_ID, PartyScreenPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playC2S().register(ChangeStarPacket.PACKET_ID, ChangeStarPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playC2S().register(InvitePlayerPacket.PACKET_ID, InvitePlayerPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playC2S().register(DeclineInvitePacket.PACKET_ID, DeclineInvitePacket.PACKET_CODEC);
-        PayloadTypeRegistry.playC2S().register(AcceptInvitePacket.PACKET_ID, AcceptInvitePacket.PACKET_CODEC);
-        PayloadTypeRegistry.playC2S().register(LeaveGroupPacket.PACKET_ID, LeaveGroupPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playC2S().register(KickPlayerPacket.PACKET_ID, KickPlayerPacket.PACKET_CODEC);
-        PayloadTypeRegistry.playC2S().register(PromotePlayerPacket.PACKET_ID, PromotePlayerPacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PartyScreenPacket.PACKET_ID, PartyScreenPacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ChangeStarPacket.PACKET_ID, ChangeStarPacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(InvitePlayerPacket.PACKET_ID, InvitePlayerPacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(DeclineInvitePacket.PACKET_ID, DeclineInvitePacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(AcceptInvitePacket.PACKET_ID, AcceptInvitePacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(LeaveGroupPacket.PACKET_ID, LeaveGroupPacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(KickPlayerPacket.PACKET_ID, KickPlayerPacket.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PromotePlayerPacket.PACKET_ID, PromotePlayerPacket.PACKET_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(PartyScreenPacket.PACKET_ID, (payload, context) -> {
             context.server().execute(() -> {

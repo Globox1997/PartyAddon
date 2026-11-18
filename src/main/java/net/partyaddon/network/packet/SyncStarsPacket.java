@@ -1,5 +1,7 @@
 package net.partyaddon.network.packet;
 
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -13,8 +15,8 @@ public record SyncStarsPacket(List<UUID> uuids) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<SyncStarsPacket> PACKET_ID = new CustomPacketPayload.Type<>(PartyAddonMain.identifierOf("sync_stars_packet"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncStarsPacket> PACKET_CODEC = StreamCodec.ofMember((value, buf) -> {
-        buf.writeCollection(value.uuids, (bufx, uuid) -> bufx.writeUUID(uuid));
-    }, buf -> new SyncStarsPacket(buf.readList((bufx) -> bufx.readUUID())));
+        UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buf, value.uuids);
+    }, buf -> new SyncStarsPacket(UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buf)));
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

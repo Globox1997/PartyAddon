@@ -22,7 +22,7 @@ public class PartyAddonClientPacket {
 
         ClientPlayNetworking.registerGlobalReceiver(PartyScreenPacket.PACKET_ID, (payload, context) -> {
             context.client().execute(() -> {
-                context.client().setScreen(new PartyScreen());
+                context.client().gui.setScreen(new PartyScreen());
             });
         });
 

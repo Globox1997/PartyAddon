@@ -14,7 +14,7 @@ import net.partyaddon.init.ConfigInit;
 @Mixin(LevelExperienceOrbEntity.class)
 public abstract class LevelExperienceOrbEntityMixin {
 
-    @WrapWithCondition(method = "/^lambda\\$onPlayerCollision\\$\\d+$/", at = @At(value = "INVOKE", target = "Lnet/levelz/access/ServerPlayerSyncAccess;addLevelExperience(I)V"), remap = false)
+    @WrapWithCondition(method = "/^lambda\\$playerTouch\\$\\d+$/", at = @At(value = "INVOKE", target = "Lnet/levelz/access/ServerPlayerSyncAccess;addLevelExperience(I)V"), remap = false)
     private static boolean onPlayerCollisionMixin(ServerPlayerSyncAccess instance, int experience) {
         return !(ConfigInit.CONFIG.distributeLevelZXP && instance instanceof ServerPlayer serverPlayerEntity && PartyManager.shareLevelZExperience(serverPlayerEntity, experience));
     }

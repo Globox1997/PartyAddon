@@ -3,5 +3,4 @@
 ### Fixed:
 - 
 ### Changed:
-- Tweaked party screen keybind
-- Tweaked party screen syncing
+- Updated to mc 26.3
