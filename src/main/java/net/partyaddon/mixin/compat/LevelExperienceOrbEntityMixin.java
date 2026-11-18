@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 
 import net.levelz.access.ServerPlayerSyncAccess;
 import net.levelz.entity.LevelExperienceOrbEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.partyaddon.group.PartyManager;
 import net.partyaddon.init.ConfigInit;
 
@@ -16,6 +16,6 @@ public abstract class LevelExperienceOrbEntityMixin {
 
     @WrapWithCondition(method = "/^lambda\\$onPlayerCollision\\$\\d+$/", at = @At(value = "INVOKE", target = "Lnet/levelz/access/ServerPlayerSyncAccess;addLevelExperience(I)V"), remap = false)
     private static boolean onPlayerCollisionMixin(ServerPlayerSyncAccess instance, int experience) {
-        return !(ConfigInit.CONFIG.distributeLevelZXP && instance instanceof ServerPlayerEntity serverPlayerEntity && PartyManager.shareLevelZExperience(serverPlayerEntity, experience));
+        return !(ConfigInit.CONFIG.distributeLevelZXP && instance instanceof ServerPlayer serverPlayerEntity && PartyManager.shareLevelZExperience(serverPlayerEntity, experience));
     }
 }

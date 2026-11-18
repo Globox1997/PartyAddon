@@ -4,18 +4,17 @@ import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-
-import net.minecraft.entity.ExperienceOrbEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.player.Player;
 import net.partyaddon.group.PartyManager;
 import net.partyaddon.init.ConfigInit;
 
-@Mixin(ExperienceOrbEntity.class)
+@Mixin(ExperienceOrb.class)
 public abstract class ExperienceOrbEntityMixin {
 
-    @WrapWithCondition(method = "onPlayerCollision", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;addExperience(I)V"))
-    private boolean onPlayerCollisionMixin(PlayerEntity player, int experience) {
-        return !(ConfigInit.CONFIG.distributeVanillaXP && player instanceof ServerPlayerEntity serverPlayerEntity && PartyManager.shareVanillaExperience(serverPlayerEntity, experience));
+    @WrapWithCondition(method = "playerTouch", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;giveExperiencePoints(I)V"))
+    private boolean onPlayerCollisionMixin(Player player, int experience) {
+        return !(ConfigInit.CONFIG.distributeVanillaXP && player instanceof ServerPlayer serverPlayerEntity && PartyManager.shareVanillaExperience(serverPlayerEntity, experience));
     }
 }

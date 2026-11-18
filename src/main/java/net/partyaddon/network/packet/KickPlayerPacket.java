@@ -1,22 +1,22 @@
 package net.partyaddon.network.packet;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.partyaddon.PartyAddonMain;
 
 import java.util.UUID;
 
-public record KickPlayerPacket(UUID kickPlayerUuid) implements CustomPayload {
+public record KickPlayerPacket(UUID kickPlayerUuid) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<KickPlayerPacket> PACKET_ID = new CustomPayload.Id<>(PartyAddonMain.identifierOf("kick_player_packet"));
+    public static final CustomPacketPayload.Type<KickPlayerPacket> PACKET_ID = new CustomPacketPayload.Type<>(PartyAddonMain.identifierOf("kick_player_packet"));
 
-    public static final PacketCodec<RegistryByteBuf, KickPlayerPacket> PACKET_CODEC = PacketCodec.of((value, buf) -> {
-        buf.writeUuid(value.kickPlayerUuid);
-    }, buf -> new KickPlayerPacket(buf.readUuid()));
+    public static final StreamCodec<RegistryFriendlyByteBuf, KickPlayerPacket> PACKET_CODEC = StreamCodec.ofMember((value, buf) -> {
+        buf.writeUUID(value.kickPlayerUuid);
+    }, buf -> new KickPlayerPacket(buf.readUUID()));
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return PACKET_ID;
     }
 

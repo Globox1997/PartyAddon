@@ -2,7 +2,7 @@ package net.partyaddon.network;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.partyaddon.group.PartyManager;
 import net.partyaddon.init.ConfigInit;
 import net.partyaddon.network.packet.*;
@@ -51,7 +51,7 @@ public class PartyAddonServerPacket {
         ServerPlayNetworking.registerGlobalReceiver(InvitePlayerPacket.PACKET_ID, (payload, context) -> {
             UUID invitedPlayerId = payload.uuid();
             context.server().execute(() -> {
-                ServerPlayerEntity invited = context.server().getPlayerManager().getPlayer(invitedPlayerId);
+                ServerPlayer invited = context.server().getPlayerList().getPlayer(invitedPlayerId);
                 if (invited != null) {
                     PartyManager.invite(context.player(), invited);
                 } else {
@@ -95,36 +95,36 @@ public class PartyAddonServerPacket {
         });
     }
 
-    public static void writeS2CSyncGroupPacket(ServerPlayerEntity serverPlayerEntity, List<UUID> availablePlayerIds, List<UUID> starPlayerIds, List<UUID> groupPlayerIds, @Nullable UUID groupLeaderId) {
+    public static void writeS2CSyncGroupPacket(ServerPlayer serverPlayerEntity, List<UUID> availablePlayerIds, List<UUID> starPlayerIds, List<UUID> groupPlayerIds, @Nullable UUID groupLeaderId) {
         ServerPlayNetworking.send(serverPlayerEntity,
                 new SyncGroupPacket(List.copyOf(availablePlayerIds), List.copyOf(starPlayerIds), List.copyOf(groupPlayerIds), Optional.ofNullable(groupLeaderId)));
     }
 
-    public static void writeS2CSyncStarPlayerListPacket(ServerPlayerEntity serverPlayerEntity, List<UUID> starPlayerIds) {
+    public static void writeS2CSyncStarPlayerListPacket(ServerPlayer serverPlayerEntity, List<UUID> starPlayerIds) {
         ServerPlayNetworking.send(serverPlayerEntity, new SyncStarsPacket(List.copyOf(starPlayerIds)));
     }
 
-    public static void writeS2CSyncInvitationPacket(ServerPlayerEntity serverPlayerEntity, UUID invitationPlayerId) {
+    public static void writeS2CSyncInvitationPacket(ServerPlayer serverPlayerEntity, UUID invitationPlayerId) {
         ServerPlayNetworking.send(serverPlayerEntity, new InvitePlayerPacket(invitationPlayerId));
     }
 
-    public static void writeS2CSyncDeclinePacket(ServerPlayerEntity serverPlayerEntity, @Nullable UUID playerId) {
+    public static void writeS2CSyncDeclinePacket(ServerPlayer serverPlayerEntity, @Nullable UUID playerId) {
         ServerPlayNetworking.send(serverPlayerEntity, new DeclineInvitePacket(Optional.ofNullable(playerId)));
     }
 
-    public static void writeS2COpenPartyScreenPacket(ServerPlayerEntity serverPlayerEntity) {
+    public static void writeS2COpenPartyScreenPacket(ServerPlayer serverPlayerEntity) {
         ServerPlayNetworking.send(serverPlayerEntity, new PartyScreenPacket());
     }
 
-    public static void writeS2CSyncSettingsPacket(ServerPlayerEntity serverPlayerEntity) {
+    public static void writeS2CSyncSettingsPacket(ServerPlayer serverPlayerEntity) {
         ServerPlayNetworking.send(serverPlayerEntity, new SyncSettingsPacket(ConfigInit.CONFIG.groupSize, ConfigInit.CONFIG.groupXpBonus, ConfigInit.CONFIG.fullGroupBonus));
     }
 
-    public static void writeS2CSyncPendingInvitationsPacket(ServerPlayerEntity serverPlayerEntity, List<UUID> invitedPlayerIds) {
+    public static void writeS2CSyncPendingInvitationsPacket(ServerPlayer serverPlayerEntity, List<UUID> invitedPlayerIds) {
         ServerPlayNetworking.send(serverPlayerEntity, new SyncPendingInvitationsPacket(List.copyOf(invitedPlayerIds)));
     }
 
-    public static void writeS2CMemberHealthPacket(ServerPlayerEntity serverPlayerEntity, List<MemberHealth> memberHealths) {
+    public static void writeS2CMemberHealthPacket(ServerPlayer serverPlayerEntity, List<MemberHealth> memberHealths) {
         ServerPlayNetworking.send(serverPlayerEntity, new MemberHealthPacket(List.copyOf(memberHealths)));
     }
 

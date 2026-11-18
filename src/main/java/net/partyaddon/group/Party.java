@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.partyaddon.network.packet.MemberHealthPacket.MemberHealth;
 
 public class Party {
@@ -53,10 +53,10 @@ public class Party {
         return memberIds;
     }
 
-    public List<ServerPlayerEntity> getOnlineMembers(MinecraftServer server) {
-        List<ServerPlayerEntity> members = new ArrayList<ServerPlayerEntity>(this.memberIds.size());
+    public List<ServerPlayer> getOnlineMembers(MinecraftServer server) {
+        List<ServerPlayer> members = new ArrayList<ServerPlayer>(this.memberIds.size());
         for (UUID memberId : this.memberIds) {
-            ServerPlayerEntity member = server.getPlayerManager().getPlayer(memberId);
+            ServerPlayer member = server.getPlayerList().getPlayer(memberId);
             if (member != null) {
                 members.add(member);
             }

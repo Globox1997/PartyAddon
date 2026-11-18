@@ -4,7 +4,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.partyaddon.group.ClientParty;
 import net.partyaddon.network.packet.*;
 import net.partyaddon.screen.PartyScreen;
@@ -76,7 +76,7 @@ public class PartyAddonClientPacket {
     }
 
     // screen
-    public static void writeC2SOpenPartyScreenPacket(MinecraftClient client) {
+    public static void writeC2SOpenPartyScreenPacket(Minecraft client) {
         ClientPlayNetworking.send(new PartyScreenPacket());
     }
 

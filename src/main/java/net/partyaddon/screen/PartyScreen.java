@@ -19,15 +19,15 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.libz.api.Tab;
 import net.libz.util.DrawTabHelper;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.partyaddon.group.ClientParty;
 import net.partyaddon.init.KeyInit;
 import net.partyaddon.init.RenderInit;
@@ -36,7 +36,7 @@ import net.partyaddon.util.NameHelper;
 @Environment(EnvType.CLIENT)
 public class PartyScreen extends Screen implements Tab {
 
-    public static final Text title = Text.translatable("text.partyaddon.gui.title");
+    public static final Component title = Component.translatable("text.partyaddon.gui.title");
 
     private static final int AVAILABLE_ROWS = 13;
     private static final int GROUP_ROWS = 7;
@@ -58,7 +58,7 @@ public class PartyScreen extends Screen implements Tab {
     private WidgetButtonPage[] availablePlayerButtons;
     private int indexStartOffset;
     private boolean scrolling;
-    private TextFieldWidget searchBox;
+    private EditBox searchBox;
     private WidgetButtonPage acceptDeclineButton;
     private WidgetButtonPage[] groupPlayerButtons;
 
@@ -72,7 +72,7 @@ public class PartyScreen extends Screen implements Tab {
         this.x = (this.width - this.backgroundWidth) / 2;
         this.y = (this.height - this.backgroundHeight) / 2;
 
-        this.acceptDeclineButton = this.addDrawableChild(new WidgetButtonPage(this.x + 109, this.y + 25, -1, button -> {
+        this.acceptDeclineButton = this.addRenderableWidget(new WidgetButtonPage(this.x + 109, this.y + 25, -1, button -> {
             UUID invitationPlayerId = ClientParty.getInvitationPlayerId();
             if (invitationPlayerId != null) {
                 PartyAddonClientPacket.writeC2SAcceptInvitationPacket(invitationPlayerId);
@@ -84,15 +84,15 @@ public class PartyScreen extends Screen implements Tab {
         this.groupPlayerButtons = new WidgetButtonPage[GROUP_ROWS];
         for (int i = 0; i < this.groupPlayerButtons.length; i++) {
             int row = i;
-            this.groupPlayerButtons[i] = this.addDrawableChild(new WidgetButtonPage(this.x + 109, this.y + 119 + i * ROW_HEIGHT, -i - 2, button -> onGroupButtonPress(row)));
+            this.groupPlayerButtons[i] = this.addRenderableWidget(new WidgetButtonPage(this.x + 109, this.y + 119 + i * ROW_HEIGHT, -i - 2, button -> onGroupButtonPress(row)));
         }
 
         this.availablePlayerButtons = new WidgetButtonPage[AVAILABLE_ROWS];
         for (int i = 0; i < this.availablePlayerButtons.length; i++) {
             int row = i;
-            this.availablePlayerButtons[i] = this.addDrawableChild(new WidgetButtonPage(this.x + 5, this.y + 41 + i * ROW_HEIGHT, i, button -> {
+            this.availablePlayerButtons[i] = this.addRenderableWidget(new WidgetButtonPage(this.x + 5, this.y + 41 + i * ROW_HEIGHT, i, button -> {
                 UUID playerId = getAvailablePlayer(row);
-                if (playerId != null && NameHelper.isPlayerUUIDNotNull(this.client, playerId)) {
+                if (playerId != null && NameHelper.isPlayerUUIDNotNull(this.minecraft, playerId)) {
                     PartyAddonClientPacket.writeC2SInvitePlayerToGroupPacket(playerId);
                     this.awaitingInvitePlayers.add(playerId);
                     button.active = false;
@@ -100,9 +100,9 @@ public class PartyScreen extends Screen implements Tab {
             }));
         }
 
-        this.searchBox = new TextFieldWidget(this.textRenderer, this.x + 5, this.y + 24, 93, 15, this.searchBox, Text.translatable("searchPlayer.search"));
-        this.searchBox.setChangedListener(searchString -> refreshAvailablePlayers());
-        this.addSelectableChild(this.searchBox);
+        this.searchBox = new EditBox(this.font, this.x + 5, this.y + 24, 93, 15, this.searchBox, Component.translatable("searchPlayer.search"));
+        this.searchBox.setResponder(searchString -> refreshAvailablePlayers());
+        this.addWidget(this.searchBox);
 
         refreshAvailablePlayers();
         updateButtons();
@@ -115,7 +115,7 @@ public class PartyScreen extends Screen implements Tab {
         }
         if (row == 0) {
             PartyAddonClientPacket.writeC2SLeaveGroupPacket();
-        } else if (ClientParty.isGroupLeader(this.client)) {
+        } else if (ClientParty.isGroupLeader(this.minecraft)) {
             if (Screen.hasShiftDown()) {
                 PartyAddonClientPacket.writeC2SPromotePlayerPacket(groupPlayerIds.get(row));
             } else {
@@ -137,18 +137,18 @@ public class PartyScreen extends Screen implements Tab {
     }
 
     private void refreshAvailablePlayers() {
-        String search = this.searchBox == null ? "" : this.searchBox.getText().trim().toLowerCase(Locale.ROOT);
+        String search = this.searchBox == null ? "" : this.searchBox.getValue().trim().toLowerCase(Locale.ROOT);
         this.availablePlayers.clear();
         for (UUID playerId : ClientParty.getAvailablePlayerIds()) {
-            if (!NameHelper.isPlayerUUIDNotNull(this.client, playerId)) {
+            if (!NameHelper.isPlayerUUIDNotNull(this.minecraft, playerId)) {
                 continue;
             }
-            if (!search.isEmpty() && !NameHelper.getPlayerName(this.client, playerId, 0).getString().toLowerCase(Locale.ROOT).contains(search)) {
+            if (!search.isEmpty() && !NameHelper.getPlayerName(this.minecraft, playerId, 0).getString().toLowerCase(Locale.ROOT).contains(search)) {
                 continue;
             }
             this.availablePlayers.add(playerId);
         }
-        this.indexStartOffset = MathHelper.clamp(this.indexStartOffset, 0, getMaxScrollOffset());
+        this.indexStartOffset = Mth.clamp(this.indexStartOffset, 0, getMaxScrollOffset());
     }
 
     private void refreshIfStale() {
@@ -158,7 +158,7 @@ public class PartyScreen extends Screen implements Tab {
             this.awaitingInvitePlayers.clear();
         }
         int partyVersion = ClientParty.getVersion();
-        int tabListSize = this.client != null && this.client.getNetworkHandler() != null ? this.client.getNetworkHandler().getPlayerList().size() : 0;
+        int tabListSize = this.minecraft != null && this.minecraft.getConnection() != null ? this.minecraft.getConnection().getOnlinePlayers().size() : 0;
         if (partyVersion != this.lastPartyVersion || tabListSize != this.lastTabListSize) {
             this.lastPartyVersion = partyVersion;
             this.lastTabListSize = tabListSize;
@@ -170,7 +170,7 @@ public class PartyScreen extends Screen implements Tab {
         List<UUID> groupPlayerIds = ClientParty.getGroupPlayerIds();
         List<UUID> starPlayerIds = ClientParty.getStarPlayerIds();
         List<UUID> pendingInvitationIds = ClientParty.getPendingInvitationIds();
-        boolean canInvite = groupPlayerIds.isEmpty() || (ClientParty.isGroupLeader(this.client) && groupPlayerIds.size() < ClientParty.getGroupSize());
+        boolean canInvite = groupPlayerIds.isEmpty() || (ClientParty.isGroupLeader(this.minecraft) && groupPlayerIds.size() < ClientParty.getGroupSize());
 
         for (int i = 0; i < this.availablePlayerButtons.length; i++) {
             WidgetButtonPage button = this.availablePlayerButtons[i];
@@ -208,76 +208,76 @@ public class PartyScreen extends Screen implements Tab {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         refreshIfStale();
         updateButtons();
 
         super.render(context, mouseX, mouseY, delta);
 
         // Top label
-        context.drawCenteredTextWithShadow(this.textRenderer, PartyScreen.title, this.width / 2, this.y + 7, 0xFFFFFF);// 0x3F3F3F
+        context.drawCenteredString(this.font, PartyScreen.title, this.width / 2, this.y + 7, 0xFFFFFF);// 0x3F3F3F
 
         // Available player list label
-        context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.player_list"), this.x + 5, this.y + 14, 0x3F3F3F, false);
+        context.drawString(this.font, Component.translatable("text.partyaddon.gui.player_list"), this.x + 5, this.y + 14, 0x3F3F3F, false);
 
         for (int i = 0; i < this.availablePlayerButtons.length; i++) {
             UUID playerId = getAvailablePlayer(i);
             if (playerId == null) {
                 break;
             }
-            String playerName = NameHelper.getPlayerName(this.client, playerId, NAME_WIDTH).getString();
-            context.drawText(this.textRenderer, playerName, this.x + 10, this.y + 44 + i * ROW_HEIGHT, this.availablePlayerButtons[i].active ? 0xFFFFFF : 0xA0A0A0, false);
+            String playerName = NameHelper.getPlayerName(this.minecraft, playerId, NAME_WIDTH).getString();
+            context.drawString(this.font, playerName, this.x + 10, this.y + 44 + i * ROW_HEIGHT, this.availablePlayerButtons[i].active ? 0xFFFFFF : 0xA0A0A0, false);
         }
         this.renderScrollbar(context);
 
         // Invitation label
-        context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.invitation"), this.x + 195 - this.textRenderer.getWidth(Text.translatable("text.partyaddon.gui.invitation")),
+        context.drawString(this.font, Component.translatable("text.partyaddon.gui.invitation"), this.x + 195 - this.font.width(Component.translatable("text.partyaddon.gui.invitation")),
                 this.y + 15, 0x3F3F3F, false);
         if (this.acceptDeclineButton.visible) {
-            String playerName = NameHelper.getPlayerName(this.client, ClientParty.getInvitationPlayerId(), NAME_WIDTH).getString();
-            context.drawText(this.textRenderer, playerName, this.x + 114, this.y + 28, 0xFFFFFF, false);
+            String playerName = NameHelper.getPlayerName(this.minecraft, ClientParty.getInvitationPlayerId(), NAME_WIDTH).getString();
+            context.drawString(this.font, playerName, this.x + 114, this.y + 28, 0xFFFFFF, false);
         }
 
         // Info label
-        context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.info"), this.x + 195 - this.textRenderer.getWidth(Text.translatable("text.partyaddon.gui.info")), this.y + 42,
+        context.drawString(this.font, Component.translatable("text.partyaddon.gui.info"), this.x + 195 - this.font.width(Component.translatable("text.partyaddon.gui.info")), this.y + 42,
                 0x3F3F3F, false);
 
         List<UUID> groupPlayerIds = ClientParty.getGroupPlayerIds();
         int groupSize = groupPlayerIds.size();
         if (groupSize > 0) {
-            context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.info_player_count", groupSize), this.x + 109, this.y + 54, 0x3F3F3F, false);
+            context.drawString(this.font, Component.translatable("text.partyaddon.gui.info_player_count", groupSize), this.x + 109, this.y + 54, 0x3F3F3F, false);
             boolean hasXpBonus = ClientParty.getGroupXpBonus() > 0.0001f;
             if (hasXpBonus) {
-                context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.info_experience", Math.round(ClientParty.getGroupXpBonus() * 100 * groupSize)), this.x + 109,
+                context.drawString(this.font, Component.translatable("text.partyaddon.gui.info_experience", Math.round(ClientParty.getGroupXpBonus() * 100 * groupSize)), this.x + 109,
                         this.y + 66, 0x3F3F3F, false);
             }
             if (groupSize >= ClientParty.getGroupSize() && ClientParty.getFullGroupBonus() >= 0.0001f) {
                 int fullGroupY = this.y + (hasXpBonus ? 82 : 66);
-                context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.full_group_bonus").formatted(Formatting.DARK_GREEN), this.x + 109, fullGroupY, 0x3F3F3F, false);
-                context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.full_group_bonus_amount", Math.round(ClientParty.getFullGroupBonus() * 100)).formatted(Formatting.DARK_GREEN),
+                context.drawString(this.font, Component.translatable("text.partyaddon.gui.full_group_bonus").withStyle(ChatFormatting.DARK_GREEN), this.x + 109, fullGroupY, 0x3F3F3F, false);
+                context.drawString(this.font, Component.translatable("text.partyaddon.gui.full_group_bonus_amount", Math.round(ClientParty.getFullGroupBonus() * 100)).withStyle(ChatFormatting.DARK_GREEN),
                         this.x + 109, fullGroupY + 11, 0x3F3F3F, false);
             }
         } else {
-            context.drawText(this.textRenderer, Text.translatable("text.partyaddon.gui.empty_info"), this.x + 109, this.y + 54, 0x3F3F3F, false);
+            context.drawString(this.font, Component.translatable("text.partyaddon.gui.empty_info"), this.x + 109, this.y + 54, 0x3F3F3F, false);
         }
 
         // Group label
-        Text groupLabel = groupSize > GROUP_ROWS ? Text.translatable("text.partyaddon.gui.group_more", groupSize - GROUP_ROWS) : Text.translatable("text.partyaddon.gui.group");
-        context.drawText(this.textRenderer, groupLabel, this.x + 195 - this.textRenderer.getWidth(groupLabel), this.y + 109, 0x3F3F3F, false);
-        boolean isGroupLeader = ClientParty.isGroupLeader(this.client);
+        Component groupLabel = groupSize > GROUP_ROWS ? Component.translatable("text.partyaddon.gui.group_more", groupSize - GROUP_ROWS) : Component.translatable("text.partyaddon.gui.group");
+        context.drawString(this.font, groupLabel, this.x + 195 - this.font.width(groupLabel), this.y + 109, 0x3F3F3F, false);
+        boolean isGroupLeader = ClientParty.isGroupLeader(this.minecraft);
         for (int i = 0; i < this.groupPlayerButtons.length; i++) {
             UUID playerId = getGroupPlayer(i);
             if (playerId == null) {
                 break;
             }
-            String playerName = NameHelper.getPlayerName(this.client, playerId, NAME_WIDTH).getString();
-            context.drawText(this.textRenderer, playerName, this.x + 114, this.y + 122 + i * ROW_HEIGHT, 0xFFFFFF, false);
+            String playerName = NameHelper.getPlayerName(this.minecraft, playerId, NAME_WIDTH).getString();
+            context.drawString(this.font, playerName, this.x + 114, this.y + 122 + i * ROW_HEIGHT, 0xFFFFFF, false);
             if (i != 0 && isGroupLeader) {
-                context.drawTexture(RenderInit.PARTY_ADDON_GUI_ICONS, this.x + 176, this.y + 122 + i * ROW_HEIGHT, 21, 32, 7, 7);
+                context.blit(RenderInit.PARTY_ADDON_GUI_ICONS, this.x + 176, this.y + 122 + i * ROW_HEIGHT, 21, 32, 7, 7);
             }
         }
         this.searchBox.render(context, mouseX, mouseY, delta);
-        DrawTabHelper.drawTab(this.client, context, this, this.x, this.y, mouseX, mouseY);
+        DrawTabHelper.drawTab(this.minecraft, context, this, this.x, this.y, mouseX, mouseY);
 
         renderButtonTooltip(context, this.acceptDeclineButton, mouseX, mouseY);
         for (WidgetButtonPage button : this.availablePlayerButtons) {
@@ -288,26 +288,26 @@ public class PartyScreen extends Screen implements Tab {
         }
     }
 
-    private void renderButtonTooltip(DrawContext context, WidgetButtonPage button, int mouseX, int mouseY) {
+    private void renderButtonTooltip(GuiGraphics context, WidgetButtonPage button, int mouseX, int mouseY) {
         if (button.visible && button.isHovered()) {
             button.renderTooltip(context, mouseX, mouseY);
         }
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderInGameBackground(context);
+    public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float delta) {
+        renderTransparentBackground(context);
 
-        context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.x, this.y, 0, 0, 200, 215);
+        context.blit(RenderInit.PARTY_ADDON_BACKGROUND, this.x, this.y, 0, 0, 200, 215);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (this.searchBox.keyPressed(keyCode, scanCode, modifiers) || (this.searchBox.isActive() && keyCode != GLFW.GLFW_KEY_ESCAPE))
+        if (this.searchBox.keyPressed(keyCode, scanCode, modifiers) || (this.searchBox.canConsumeInput() && keyCode != GLFW.GLFW_KEY_ESCAPE))
             return true;
-        if (KeyInit.screenKey.matchesKey(keyCode, scanCode) || net.levelz.init.KeyInit.screenKey.matchesKey(keyCode, scanCode)
-                || Objects.requireNonNull(client).options.inventoryKey.matchesKey(keyCode, scanCode)) {
-            this.close();
+        if (KeyInit.screenKey.matches(keyCode, scanCode) || net.levelz.init.KeyInit.screenKey.matches(keyCode, scanCode)
+                || Objects.requireNonNull(minecraft).options.keyInventory.matches(keyCode, scanCode)) {
+            this.onClose();
             return true;
         } else {
             return super.keyPressed(keyCode, scanCode, modifiers);
@@ -315,14 +315,14 @@ public class PartyScreen extends Screen implements Tab {
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (this.client != null) {
-            DrawTabHelper.onTabButtonClick(client, this, this.x, this.y, mouseX, mouseY, false);
+        if (this.minecraft != null) {
+            DrawTabHelper.onTabButtonClick(minecraft, this, this.x, this.y, mouseX, mouseY, false);
         }
 
         this.scrolling = false;
@@ -344,7 +344,7 @@ public class PartyScreen extends Screen implements Tab {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        this.indexStartOffset = MathHelper.clamp((int) ((double) this.indexStartOffset - verticalAmount), 0, getMaxScrollOffset());
+        this.indexStartOffset = Mth.clamp((int) ((double) this.indexStartOffset - verticalAmount), 0, getMaxScrollOffset());
         return true;
     }
 
@@ -353,29 +353,29 @@ public class PartyScreen extends Screen implements Tab {
         if (this.scrolling) {
             int maxScrollOffset = getMaxScrollOffset();
             float f = ((float) mouseY - (float) (this.y + 41) - SCROLLER_HEIGHT / 2.0f) / (float) (SCROLLBAR_HEIGHT - SCROLLER_HEIGHT);
-            this.indexStartOffset = MathHelper.clamp(Math.round(f * maxScrollOffset), 0, maxScrollOffset);
+            this.indexStartOffset = Mth.clamp(Math.round(f * maxScrollOffset), 0, maxScrollOffset);
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
-    private void renderScrollbar(DrawContext context) {
+    private void renderScrollbar(GuiGraphics context) {
         int maxScrollOffset = getMaxScrollOffset();
         if (maxScrollOffset > 0) {
             int scrollerY = (SCROLLBAR_HEIGHT - SCROLLER_HEIGHT) * this.indexStartOffset / maxScrollOffset;
-            context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.x + 92, this.y + 41 + scrollerY, 200, 0, 6, SCROLLER_HEIGHT);
+            context.blit(RenderInit.PARTY_ADDON_BACKGROUND, this.x + 92, this.y + 41 + scrollerY, 200, 0, 6, SCROLLER_HEIGHT);
         } else {
-            context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.x + 92, this.y + 41, 206, 0, 6, SCROLLER_HEIGHT);
+            context.blit(RenderInit.PARTY_ADDON_BACKGROUND, this.x + 92, this.y + 41, 206, 0, 6, SCROLLER_HEIGHT);
         }
     }
 
-    private class WidgetButtonPage extends ButtonWidget {
+    private class WidgetButtonPage extends Button {
         private final int index;
         private boolean star = false;
         private boolean leader = false;
 
-        public WidgetButtonPage(int x, int y, int index, ButtonWidget.PressAction onPress) {
-            super(x, y, 86, 13, ScreenTexts.EMPTY, onPress, DEFAULT_NARRATION_SUPPLIER);
+        public WidgetButtonPage(int x, int y, int index, Button.OnPress onPress) {
+            super(x, y, 86, 13, CommonComponents.EMPTY, onPress, DEFAULT_NARRATION);
             this.index = index;
             this.visible = false;
         }
@@ -434,57 +434,57 @@ public class PartyScreen extends Screen implements Tab {
         }
 
         @Override
-        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-            TextRenderer textRenderer = client.textRenderer;
+        protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
+            Font textRenderer = minecraft.font;
             int i = this.getTextureY();
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             RenderSystem.enableDepthTest();
-            context.drawTexture(RenderInit.PARTY_ADDON_BACKGROUND, this.getX(), this.getY(), star ? 86 : 0, 216 + i * 13, this.width, this.height);
+            context.blit(RenderInit.PARTY_ADDON_BACKGROUND, this.getX(), this.getY(), star ? 86 : 0, 216 + i * 13, this.width, this.height);
             if (this.leader) {
                 RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, this.alpha);
                 RenderSystem.enableBlend();
-                context.drawTexture(RenderInit.PARTY_ADDON_GUI_ICONS, this.getX() + 67, this.getY() + 3, 0, 32, 7, 7);
+                context.blit(RenderInit.PARTY_ADDON_GUI_ICONS, this.getX() + 67, this.getY() + 3, 0, 32, 7, 7);
             }
 
             int j = this.active ? 0xFFFFFF : 0xA0A0A0;
-            context.drawCenteredTextWithShadow(textRenderer, this.getMessage(), this.getX() + this.width / 2, this.getY() + (this.height - 8) / 2, j | MathHelper.ceil(this.alpha * 255.0f) << 24);
+            context.drawCenteredString(textRenderer, this.getMessage(), this.getX() + this.width / 2, this.getY() + (this.height - 8) / 2, j | Mth.ceil(this.alpha * 255.0f) << 24);
         }
 
-        public void renderTooltip(DrawContext context, int mouseX, int mouseY) {
-            List<Text> lines = new ArrayList<Text>();
+        public void renderTooltip(GuiGraphics context, int mouseX, int mouseY) {
+            List<Component> lines = new ArrayList<Component>();
             UUID playerId = this.getPlayerId();
-            if (playerId != null && NameHelper.isPlayerUUIDNotNull(client, playerId)) {
-                String playerName = NameHelper.getPlayerName(client, playerId, 0).getString();
-                if (PartyScreen.this.textRenderer.getWidth(playerName) > NAME_WIDTH) {
-                    lines.add(Text.of(playerName));
+            if (playerId != null && NameHelper.isPlayerUUIDNotNull(minecraft, playerId)) {
+                String playerName = NameHelper.getPlayerName(minecraft, playerId, 0).getString();
+                if (PartyScreen.this.font.width(playerName) > NAME_WIDTH) {
+                    lines.add(Component.nullToEmpty(playerName));
                 }
             }
             if (this.index == -1) {
-                lines.add(Text.translatable("text.partyaddon.gui.hint_accept").formatted(Formatting.GRAY));
-                lines.add(Text.translatable("text.partyaddon.gui.hint_decline").formatted(Formatting.GRAY));
+                lines.add(Component.translatable("text.partyaddon.gui.hint_accept").withStyle(ChatFormatting.GRAY));
+                lines.add(Component.translatable("text.partyaddon.gui.hint_decline").withStyle(ChatFormatting.GRAY));
             } else if (this.index == -2) {
-                lines.add(Text.translatable("text.partyaddon.gui.hint_leave").formatted(Formatting.GRAY));
+                lines.add(Component.translatable("text.partyaddon.gui.hint_leave").withStyle(ChatFormatting.GRAY));
             } else if (this.index < -1) {
-                if (ClientParty.isGroupLeader(client)) {
-                    lines.add(Text.translatable("text.partyaddon.gui.hint_kick").formatted(Formatting.GRAY));
-                    lines.add(Text.translatable("text.partyaddon.gui.hint_promote").formatted(Formatting.GRAY));
+                if (ClientParty.isGroupLeader(minecraft)) {
+                    lines.add(Component.translatable("text.partyaddon.gui.hint_kick").withStyle(ChatFormatting.GRAY));
+                    lines.add(Component.translatable("text.partyaddon.gui.hint_promote").withStyle(ChatFormatting.GRAY));
                 }
-                lines.add(Text.translatable("text.partyaddon.gui.hint_star").formatted(Formatting.GRAY));
+                lines.add(Component.translatable("text.partyaddon.gui.hint_star").withStyle(ChatFormatting.GRAY));
             } else {
                 if (this.active) {
-                    lines.add(Text.translatable("text.partyaddon.gui.hint_invite").formatted(Formatting.GRAY));
+                    lines.add(Component.translatable("text.partyaddon.gui.hint_invite").withStyle(ChatFormatting.GRAY));
                 }
-                lines.add(Text.translatable("text.partyaddon.gui.hint_star").formatted(Formatting.GRAY));
+                lines.add(Component.translatable("text.partyaddon.gui.hint_star").withStyle(ChatFormatting.GRAY));
             }
-            context.drawTooltip(client.textRenderer, lines, mouseX, mouseY);
+            context.renderComponentTooltip(minecraft.font, lines, mouseX, mouseY);
         }
 
         private int getTextureY() {
             int i = 1;
             if (!this.active) {
                 i = 0;
-            } else if (this.isSelected()) {
+            } else if (this.isHoveredOrFocused()) {
                 i = 2;
             }
             return i;

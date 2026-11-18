@@ -1,19 +1,19 @@
 package net.partyaddon.network.packet;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.partyaddon.PartyAddonMain;
 
-public record LeaveGroupPacket() implements CustomPayload {
+public record LeaveGroupPacket() implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<LeaveGroupPacket> PACKET_ID = new CustomPayload.Id<>(PartyAddonMain.identifierOf("leave_group_packet"));
+    public static final CustomPacketPayload.Type<LeaveGroupPacket> PACKET_ID = new CustomPacketPayload.Type<>(PartyAddonMain.identifierOf("leave_group_packet"));
 
-    public static final PacketCodec<RegistryByteBuf, LeaveGroupPacket> PACKET_CODEC = PacketCodec.of((value, buf) -> {
+    public static final StreamCodec<RegistryFriendlyByteBuf, LeaveGroupPacket> PACKET_CODEC = StreamCodec.ofMember((value, buf) -> {
     }, buf -> new LeaveGroupPacket());
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return PACKET_ID;
     }
 

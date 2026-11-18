@@ -1,23 +1,23 @@
 package net.partyaddon.network.packet;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.partyaddon.PartyAddonMain;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public record DeclineInvitePacket(Optional<UUID> uuid) implements CustomPayload {
+public record DeclineInvitePacket(Optional<UUID> uuid) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<DeclineInvitePacket> PACKET_ID = new CustomPayload.Id<>(PartyAddonMain.identifierOf("decline_invite_packet"));
+    public static final CustomPacketPayload.Type<DeclineInvitePacket> PACKET_ID = new CustomPacketPayload.Type<>(PartyAddonMain.identifierOf("decline_invite_packet"));
 
-    public static final PacketCodec<RegistryByteBuf, DeclineInvitePacket> PACKET_CODEC = PacketCodec.of((value, buf) -> {
-        buf.writeOptional(value.uuid, (bufx, uuid) -> bufx.writeUuid(uuid));
-    }, buf -> new DeclineInvitePacket(buf.readOptional(bufx -> bufx.readUuid())));
+    public static final StreamCodec<RegistryFriendlyByteBuf, DeclineInvitePacket> PACKET_CODEC = StreamCodec.ofMember((value, buf) -> {
+        buf.writeOptional(value.uuid, (bufx, uuid) -> bufx.writeUUID(uuid));
+    }, buf -> new DeclineInvitePacket(buf.readOptional(bufx -> bufx.readUUID())));
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return PACKET_ID;
     }
 

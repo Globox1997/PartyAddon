@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.partyaddon.init.ConfigInit;
 import net.partyaddon.network.packet.MemberHealthPacket.MemberHealth;
 
@@ -128,8 +128,8 @@ public final class ClientParty {
         return MEMBER_HEALTH.get(playerId);
     }
 
-    public static boolean isGroupLeader(MinecraftClient client) {
-        return groupLeaderId != null && client.player != null && groupLeaderId.equals(client.player.getUuid());
+    public static boolean isGroupLeader(Minecraft client) {
+        return groupLeaderId != null && client.player != null && groupLeaderId.equals(client.player.getUUID());
     }
 
     public static boolean isGroupLeader(UUID playerId) {

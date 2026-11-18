@@ -1,19 +1,19 @@
 package net.partyaddon.network.packet;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.partyaddon.PartyAddonMain;
 
-public record PartyScreenPacket() implements CustomPayload {
+public record PartyScreenPacket() implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<PartyScreenPacket> PACKET_ID = new CustomPayload.Id<>(PartyAddonMain.identifierOf("party_screen_packet"));
+    public static final CustomPacketPayload.Type<PartyScreenPacket> PACKET_ID = new CustomPacketPayload.Type<>(PartyAddonMain.identifierOf("party_screen_packet"));
 
-    public static final PacketCodec<RegistryByteBuf, PartyScreenPacket> PACKET_CODEC = PacketCodec.of((value, buf) -> {
+    public static final StreamCodec<RegistryFriendlyByteBuf, PartyScreenPacket> PACKET_CODEC = StreamCodec.ofMember((value, buf) -> {
     }, buf -> new PartyScreenPacket());
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return PACKET_ID;
     }
 

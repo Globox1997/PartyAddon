@@ -1,23 +1,23 @@
 package net.partyaddon.network.packet;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.partyaddon.PartyAddonMain;
 
 import java.util.List;
 import java.util.UUID;
 
-public record SyncStarsPacket(List<UUID> uuids) implements CustomPayload {
+public record SyncStarsPacket(List<UUID> uuids) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<SyncStarsPacket> PACKET_ID = new CustomPayload.Id<>(PartyAddonMain.identifierOf("sync_stars_packet"));
+    public static final CustomPacketPayload.Type<SyncStarsPacket> PACKET_ID = new CustomPacketPayload.Type<>(PartyAddonMain.identifierOf("sync_stars_packet"));
 
-    public static final PacketCodec<RegistryByteBuf, SyncStarsPacket> PACKET_CODEC = PacketCodec.of((value, buf) -> {
-        buf.writeCollection(value.uuids, (bufx, uuid) -> bufx.writeUuid(uuid));
-    }, buf -> new SyncStarsPacket(buf.readList((bufx) -> bufx.readUuid())));
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncStarsPacket> PACKET_CODEC = StreamCodec.ofMember((value, buf) -> {
+        buf.writeCollection(value.uuids, (bufx, uuid) -> bufx.writeUUID(uuid));
+    }, buf -> new SyncStarsPacket(buf.readList((bufx) -> bufx.readUUID())));
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return PACKET_ID;
     }
 

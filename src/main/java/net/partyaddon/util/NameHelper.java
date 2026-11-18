@@ -6,40 +6,40 @@ import org.jetbrains.annotations.Nullable;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.scores.PlayerTeam;
 
 @Environment(EnvType.CLIENT)
 public final class NameHelper {
 
     private static final String ELLIPSIS = "..";
 
-    public static Text getPlayerName(MinecraftClient client, UUID playerId, int maxWidth) {
-        Text name = resolveDisplayName(client, playerId);
+    public static Component getPlayerName(Minecraft client, UUID playerId, int maxWidth) {
+        Component name = resolveDisplayName(client, playerId);
         if (name == null) {
-            return Text.translatable("text.partyaddon.hud.empty_name");
+            return Component.translatable("text.partyaddon.hud.empty_name");
         }
         return maxWidth > 0 ? trimToWidth(client, name, maxWidth) : name;
     }
 
     @Nullable
-    private static Text resolveDisplayName(MinecraftClient client, UUID playerId) {
-        if (client.getNetworkHandler() != null) {
-            PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(playerId);
+    private static Component resolveDisplayName(Minecraft client, UUID playerId) {
+        if (client.getConnection() != null) {
+            PlayerInfo entry = client.getConnection().getPlayerInfo(playerId);
             if (entry != null) {
-                Text display = entry.getDisplayName();
+                Component display = entry.getTabListDisplayName();
                 if (display != null) {
                     return display;
                 }
-                return Team.decorateName(entry.getScoreboardTeam(), Text.literal(entry.getProfile().getName()));
+                return PlayerTeam.formatNameForTeam(entry.getTeam(), Component.literal(entry.getProfile().getName()));
             }
         }
 
-        if (client.world != null) {
-            PlayerEntity player = client.world.getPlayerByUuid(playerId);
+        if (client.level != null) {
+            Player player = client.level.getPlayerByUUID(playerId);
             if (player != null) {
                 return player.getDisplayName();
             }
@@ -48,19 +48,19 @@ public final class NameHelper {
         return null;
     }
 
-    private static Text trimToWidth(MinecraftClient client, Text name, int maxWidth) {
+    private static Component trimToWidth(Minecraft client, Component name, int maxWidth) {
         String raw = name.getString();
-        if (client.textRenderer.getWidth(raw) <= maxWidth) {
+        if (client.font.width(raw) <= maxWidth) {
             return name;
         }
 
-        int ellipsisWidth = client.textRenderer.getWidth(ELLIPSIS);
+        int ellipsisWidth = client.font.width(ELLIPSIS);
         int budget = Math.max(0, maxWidth - ellipsisWidth);
-        String trimmed = client.textRenderer.trimToWidth(raw, budget) + ELLIPSIS;
-        return Text.literal(trimmed);
+        String trimmed = client.font.plainSubstrByWidth(raw, budget) + ELLIPSIS;
+        return Component.literal(trimmed);
     }
 
-    public static boolean isPlayerUUIDNotNull(MinecraftClient client, UUID playerId) {
-        return playerId != null && client.getNetworkHandler() != null && client.getNetworkHandler().getPlayerListEntry(playerId) != null;
+    public static boolean isPlayerUUIDNotNull(Minecraft client, UUID playerId) {
+        return playerId != null && client.getConnection() != null && client.getConnection().getPlayerInfo(playerId) != null;
     }
 }

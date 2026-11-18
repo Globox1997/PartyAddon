@@ -1,22 +1,22 @@
 package net.partyaddon.network.packet;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.partyaddon.PartyAddonMain;
 
-public record SyncSettingsPacket(int groupSize, float groupXpBonus, float fullGroupBonus) implements CustomPayload {
+public record SyncSettingsPacket(int groupSize, float groupXpBonus, float fullGroupBonus) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<SyncSettingsPacket> PACKET_ID = new CustomPayload.Id<>(PartyAddonMain.identifierOf("sync_settings_packet"));
+    public static final CustomPacketPayload.Type<SyncSettingsPacket> PACKET_ID = new CustomPacketPayload.Type<>(PartyAddonMain.identifierOf("sync_settings_packet"));
 
-    public static final PacketCodec<RegistryByteBuf, SyncSettingsPacket> PACKET_CODEC = PacketCodec.of((value, buf) -> {
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncSettingsPacket> PACKET_CODEC = StreamCodec.ofMember((value, buf) -> {
         buf.writeInt(value.groupSize);
         buf.writeFloat(value.groupXpBonus);
         buf.writeFloat(value.fullGroupBonus);
     }, buf -> new SyncSettingsPacket(buf.readInt(), buf.readFloat(), buf.readFloat()));
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return PACKET_ID;
     }
 
