@@ -1,6 +1,7 @@
 ### Added:
-- Party screen keybind
+- 
 ### Fixed:
 - 
 ### Changed:
-- 
+- Tweaked party screen keybind
+- Tweaked party screen syncing
