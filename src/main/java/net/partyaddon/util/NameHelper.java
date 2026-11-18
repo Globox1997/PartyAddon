@@ -2,11 +2,14 @@ package net.partyaddon.util;
 
 import java.util.UUID;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.scoreboard.Team;
 import net.minecraft.text.Text;
 
 @Environment(EnvType.CLIENT)
@@ -22,19 +25,23 @@ public final class NameHelper {
         return maxWidth > 0 ? trimToWidth(client, name, maxWidth) : name;
     }
 
+    @Nullable
     private static Text resolveDisplayName(MinecraftClient client, UUID playerId) {
-        if (client.world != null) {
-            PlayerEntity player = client.world.getPlayerByUuid(playerId);
-            if (player != null) {
-                return player.getDisplayName();
-            }
-        }
-
         if (client.getNetworkHandler() != null) {
             PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(playerId);
             if (entry != null) {
                 Text display = entry.getDisplayName();
-                return display != null ? display : Text.literal(entry.getProfile().getName());
+                if (display != null) {
+                    return display;
+                }
+                return Team.decorateName(entry.getScoreboardTeam(), Text.literal(entry.getProfile().getName()));
+            }
+        }
+
+        if (client.world != null) {
+            PlayerEntity player = client.world.getPlayerByUuid(playerId);
+            if (player != null) {
+                return player.getDisplayName();
             }
         }
 
