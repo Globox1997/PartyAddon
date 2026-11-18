@@ -19,6 +19,7 @@ public final class ClientParty {
     private static List<UUID> availablePlayerIds = List.of();
     private static List<UUID> starPlayerIds = List.of();
     private static List<UUID> groupPlayerIds = List.of();
+    private static List<UUID> pendingInvitationIds = List.of();
     @Nullable
     private static UUID groupLeaderId = null;
     @Nullable
@@ -29,6 +30,9 @@ public final class ClientParty {
     private static float groupXpBonus = ConfigInit.CONFIG.groupXpBonus;
     private static float fullGroupBonus = ConfigInit.CONFIG.fullGroupBonus;
 
+    private static int version = 0;
+    private static int pendingInvitationsVersion = 0;
+
     private ClientParty() {
     }
 
@@ -36,12 +40,14 @@ public final class ClientParty {
         availablePlayerIds = List.of();
         starPlayerIds = List.of();
         groupPlayerIds = List.of();
+        pendingInvitationIds = List.of();
         groupLeaderId = null;
         invitationPlayerId = null;
         MEMBER_HEALTH.clear();
         groupSize = ConfigInit.CONFIG.groupSize;
         groupXpBonus = ConfigInit.CONFIG.groupXpBonus;
         fullGroupBonus = ConfigInit.CONFIG.fullGroupBonus;
+        version++;
     }
 
     public static void updateGroup(List<UUID> availablePlayerIds, List<UUID> starPlayerIds, List<UUID> groupPlayerIds, @Nullable UUID groupLeaderId) {
@@ -50,10 +56,22 @@ public final class ClientParty {
         ClientParty.groupPlayerIds = List.copyOf(groupPlayerIds);
         ClientParty.groupLeaderId = groupLeaderId;
         MEMBER_HEALTH.keySet().retainAll(ClientParty.groupPlayerIds);
+        version++;
     }
 
     public static void updateStars(List<UUID> starPlayerIds) {
         ClientParty.starPlayerIds = List.copyOf(starPlayerIds);
+        version++;
+    }
+
+    public static void updatePendingInvitations(List<UUID> pendingInvitationIds) {
+        ClientParty.pendingInvitationIds = List.copyOf(pendingInvitationIds);
+        pendingInvitationsVersion++;
+        version++;
+    }
+
+    public static int getPendingInvitationsVersion() {
+        return pendingInvitationsVersion;
     }
 
     public static void updateMemberHealth(List<MemberHealth> memberHealths) {
@@ -67,10 +85,20 @@ public final class ClientParty {
         ClientParty.groupSize = groupSize;
         ClientParty.groupXpBonus = groupXpBonus;
         ClientParty.fullGroupBonus = fullGroupBonus;
+        version++;
     }
 
     public static void setInvitationPlayerId(@Nullable UUID invitationPlayerId) {
         ClientParty.invitationPlayerId = invitationPlayerId;
+        version++;
+    }
+
+    public static int getVersion() {
+        return version;
+    }
+
+    public static List<UUID> getPendingInvitationIds() {
+        return pendingInvitationIds;
     }
 
     public static List<UUID> getAvailablePlayerIds() {

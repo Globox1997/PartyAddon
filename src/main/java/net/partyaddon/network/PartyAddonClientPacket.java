@@ -62,6 +62,12 @@ public class PartyAddonClientPacket {
             });
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(SyncPendingInvitationsPacket.PACKET_ID, (payload, context) -> {
+            context.client().execute(() -> {
+                ClientParty.updatePendingInvitations(payload.uuids());
+            });
+        });
+
         ClientPlayNetworking.registerGlobalReceiver(MemberHealthPacket.PACKET_ID, (payload, context) -> {
             context.client().execute(() -> {
                 ClientParty.updateMemberHealth(payload.members());

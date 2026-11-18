@@ -23,6 +23,7 @@ public class PartyAddonServerPacket {
         PayloadTypeRegistry.playS2C().register(DeclineInvitePacket.PACKET_ID, DeclineInvitePacket.PACKET_CODEC);
         PayloadTypeRegistry.playS2C().register(SyncSettingsPacket.PACKET_ID, SyncSettingsPacket.PACKET_CODEC);
         PayloadTypeRegistry.playS2C().register(MemberHealthPacket.PACKET_ID, MemberHealthPacket.PACKET_CODEC);
+        PayloadTypeRegistry.playS2C().register(SyncPendingInvitationsPacket.PACKET_ID, SyncPendingInvitationsPacket.PACKET_CODEC);
 
         PayloadTypeRegistry.playC2S().register(PartyScreenPacket.PACKET_ID, PartyScreenPacket.PACKET_CODEC);
         PayloadTypeRegistry.playC2S().register(ChangeStarPacket.PACKET_ID, ChangeStarPacket.PACKET_CODEC);
@@ -53,6 +54,8 @@ public class PartyAddonServerPacket {
                 ServerPlayerEntity invited = context.server().getPlayerManager().getPlayer(invitedPlayerId);
                 if (invited != null) {
                     PartyManager.invite(context.player(), invited);
+                } else {
+                    PartyManager.syncOutgoingInvitations(context.player());
                 }
             });
         });
@@ -115,6 +118,10 @@ public class PartyAddonServerPacket {
 
     public static void writeS2CSyncSettingsPacket(ServerPlayerEntity serverPlayerEntity) {
         ServerPlayNetworking.send(serverPlayerEntity, new SyncSettingsPacket(ConfigInit.CONFIG.groupSize, ConfigInit.CONFIG.groupXpBonus, ConfigInit.CONFIG.fullGroupBonus));
+    }
+
+    public static void writeS2CSyncPendingInvitationsPacket(ServerPlayerEntity serverPlayerEntity, List<UUID> invitedPlayerIds) {
+        ServerPlayNetworking.send(serverPlayerEntity, new SyncPendingInvitationsPacket(List.copyOf(invitedPlayerIds)));
     }
 
     public static void writeS2CMemberHealthPacket(ServerPlayerEntity serverPlayerEntity, List<MemberHealth> memberHealths) {

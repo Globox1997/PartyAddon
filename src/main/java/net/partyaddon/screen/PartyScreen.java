@@ -17,7 +17,6 @@ import org.lwjgl.glfw.GLFW;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.levelz.init.KeyInit;
 import net.libz.api.Tab;
 import net.libz.util.DrawTabHelper;
 import net.minecraft.client.font.TextRenderer;
@@ -30,6 +29,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
 import net.partyaddon.group.ClientParty;
+import net.partyaddon.init.KeyInit;
 import net.partyaddon.init.RenderInit;
 import net.partyaddon.util.NameHelper;
 
@@ -51,7 +51,10 @@ public class PartyScreen extends Screen implements Tab {
     private int y;
 
     private final List<UUID> availablePlayers = new ArrayList<UUID>();
-    private final Set<UUID> invitedPlayers = new HashSet<UUID>();
+    private final Set<UUID> awaitingInvitePlayers = new HashSet<UUID>();
+    private int lastPartyVersion = -1;
+    private int lastPendingInvitationsVersion = -1;
+    private int lastTabListSize = -1;
     private WidgetButtonPage[] availablePlayerButtons;
     private int indexStartOffset;
     private boolean scrolling;
@@ -91,7 +94,7 @@ public class PartyScreen extends Screen implements Tab {
                 UUID playerId = getAvailablePlayer(row);
                 if (playerId != null && NameHelper.isPlayerUUIDNotNull(this.client, playerId)) {
                     PartyAddonClientPacket.writeC2SInvitePlayerToGroupPacket(playerId);
-                    this.invitedPlayers.add(playerId);
+                    this.awaitingInvitePlayers.add(playerId);
                     button.active = false;
                 }
             }));
@@ -148,9 +151,25 @@ public class PartyScreen extends Screen implements Tab {
         this.indexStartOffset = MathHelper.clamp(this.indexStartOffset, 0, getMaxScrollOffset());
     }
 
+    private void refreshIfStale() {
+        int pendingInvitationsVersion = ClientParty.getPendingInvitationsVersion();
+        if (pendingInvitationsVersion != this.lastPendingInvitationsVersion) {
+            this.lastPendingInvitationsVersion = pendingInvitationsVersion;
+            this.awaitingInvitePlayers.clear();
+        }
+        int partyVersion = ClientParty.getVersion();
+        int tabListSize = this.client != null && this.client.getNetworkHandler() != null ? this.client.getNetworkHandler().getPlayerList().size() : 0;
+        if (partyVersion != this.lastPartyVersion || tabListSize != this.lastTabListSize) {
+            this.lastPartyVersion = partyVersion;
+            this.lastTabListSize = tabListSize;
+            refreshAvailablePlayers();
+        }
+    }
+
     private void updateButtons() {
         List<UUID> groupPlayerIds = ClientParty.getGroupPlayerIds();
         List<UUID> starPlayerIds = ClientParty.getStarPlayerIds();
+        List<UUID> pendingInvitationIds = ClientParty.getPendingInvitationIds();
         boolean canInvite = groupPlayerIds.isEmpty() || (ClientParty.isGroupLeader(this.client) && groupPlayerIds.size() < ClientParty.getGroupSize());
 
         for (int i = 0; i < this.availablePlayerButtons.length; i++) {
@@ -158,7 +177,7 @@ public class PartyScreen extends Screen implements Tab {
             UUID playerId = getAvailablePlayer(i);
             button.visible = playerId != null;
             if (playerId != null) {
-                button.active = canInvite && !groupPlayerIds.contains(playerId) && !this.invitedPlayers.contains(playerId);
+                button.active = canInvite && !groupPlayerIds.contains(playerId) && !pendingInvitationIds.contains(playerId) && !this.awaitingInvitePlayers.contains(playerId);
                 button.setStar(starPlayerIds.contains(playerId));
             }
         }
@@ -190,7 +209,7 @@ public class PartyScreen extends Screen implements Tab {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        refreshAvailablePlayers();
+        refreshIfStale();
         updateButtons();
 
         super.render(context, mouseX, mouseY, delta);
@@ -286,7 +305,8 @@ public class PartyScreen extends Screen implements Tab {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (this.searchBox.keyPressed(keyCode, scanCode, modifiers) || (this.searchBox.isActive() && keyCode != GLFW.GLFW_KEY_ESCAPE))
             return true;
-        if (KeyInit.screenKey.matchesKey(keyCode, scanCode) || Objects.requireNonNull(client).options.inventoryKey.matchesKey(keyCode, scanCode)) {
+        if (KeyInit.screenKey.matchesKey(keyCode, scanCode) || net.levelz.init.KeyInit.screenKey.matchesKey(keyCode, scanCode)
+                || Objects.requireNonNull(client).options.inventoryKey.matchesKey(keyCode, scanCode)) {
             this.close();
             return true;
         } else {

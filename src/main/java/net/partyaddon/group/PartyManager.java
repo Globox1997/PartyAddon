@@ -3,6 +3,7 @@ package net.partyaddon.group;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -53,6 +54,11 @@ public final class PartyManager {
 
     // Invitation stuff
     public static void invite(ServerPlayerEntity inviter, ServerPlayerEntity invited) {
+        sendInvitation(inviter, invited);
+        syncOutgoingInvitations(inviter);
+    }
+
+    private static void sendInvitation(ServerPlayerEntity inviter, ServerPlayerEntity invited) {
         if (inviter.getUuid().equals(invited.getUuid())) {
             inviter.sendMessage(Text.translatable("text.partyaddon.cannot_invite_self"));
             return;
@@ -72,7 +78,21 @@ public final class PartyManager {
                 return;
             }
         }
-        INVITATIONS.put(invited.getUuid(), new Invitation(inviter.getUuid(), inviter.getServer().getTicks() + Math.max(1, ConfigInit.CONFIG.invitationTime)));
+        Invitation pending = INVITATIONS.get(invited.getUuid());
+        if (pending != null && pending.inviterId().equals(inviter.getUuid())) {
+            inviter.sendMessage(Text.translatable("text.partyaddon.already_invited", invited.getName().getString()));
+            return;
+        }
+        MinecraftServer server = inviter.getServer();
+        INVITATIONS.put(invited.getUuid(), new Invitation(inviter.getUuid(), server.getTicks() + Math.max(1, ConfigInit.CONFIG.invitationTime)));
+
+        if (pending != null) {
+            ServerPlayerEntity previousInviter = server.getPlayerManager().getPlayer(pending.inviterId());
+            if (previousInviter != null) {
+                previousInviter.sendMessage(Text.translatable("text.partyaddon.invitation_replaced", invited.getName().getString()));
+                syncOutgoingInvitations(previousInviter);
+            }
+        }
 
         invited.sendMessage(Text.translatable("text.partyaddon.invitation", inviter.getName().getString()));
         inviter.sendMessage(Text.translatable("text.partyaddon.invitation_sent", invited.getName().getString()));
@@ -94,8 +114,13 @@ public final class PartyManager {
             player.sendMessage(Text.translatable("text.partyaddon.no_invitation"));
             return;
         }
+        syncOutgoingInvitations(inviter);
         Party party = getParty(inviter.getUuid());
         if (party != null) {
+            if (!party.isLeader(inviter.getUuid())) {
+                player.sendMessage(Text.translatable("text.partyaddon.invitation_invalid"));
+                return;
+            }
             if (party.contains(player.getUuid())) {
                 player.sendMessage(Text.translatable("text.partyaddon.already_member"));
                 return;
@@ -135,6 +160,7 @@ public final class PartyManager {
         ServerPlayerEntity inviter = server.getPlayerManager().getPlayer(invitation.inviterId());
         if (inviter != null) {
             inviter.sendMessage(Text.translatable("text.partyaddon.declined_invitation", player.getName().getString()));
+            syncOutgoingInvitations(inviter);
         }
         player.sendMessage(Text.translatable("text.partyaddon.invitation_declined", getName(server, invitation.inviterId())));
     }
@@ -271,7 +297,10 @@ public final class PartyManager {
 
     public static void onDisconnect(ServerPlayerEntity player) {
         MinecraftServer server = player.getServer();
-        INVITATIONS.remove(player.getUuid());
+        Invitation ownInvitation = INVITATIONS.remove(player.getUuid());
+        if (ownInvitation != null) {
+            syncOutgoingInvitations(server, ownInvitation.inviterId());
+        }
 
         Iterator<Map.Entry<UUID, Invitation>> iterator = INVITATIONS.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -292,6 +321,7 @@ public final class PartyManager {
     public static void tick(MinecraftServer server) {
         if (!INVITATIONS.isEmpty()) {
             int ticks = server.getTicks();
+            Set<UUID> invitersToSync = null;
             Iterator<Map.Entry<UUID, Invitation>> iterator = INVITATIONS.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<UUID, Invitation> entry = iterator.next();
@@ -307,6 +337,17 @@ public final class PartyManager {
                     if (inviter != null) {
                         inviter.sendMessage(Text.translatable("text.partyaddon.invitation_not_answered", invited.getName().getString()));
                     }
+                }
+                if (inviter != null) {
+                    if (invitersToSync == null) {
+                        invitersToSync = new HashSet<UUID>();
+                    }
+                    invitersToSync.add(inviter.getUuid());
+                }
+            }
+            if (invitersToSync != null) {
+                for (UUID inviterId : invitersToSync) {
+                    syncOutgoingInvitations(server, inviterId);
                 }
             }
         }
@@ -340,6 +381,23 @@ public final class PartyManager {
         }
         List<UUID> groupPlayerIds = party == null ? List.of() : party.getMemberIdsFor(player.getUuid());
         PartyAddonServerPacket.writeS2CSyncGroupPacket(player, availablePlayerIds, getStarIds(player.getUuid()), groupPlayerIds, party == null ? null : party.getLeaderId());
+    }
+
+    public static void syncOutgoingInvitations(ServerPlayerEntity inviter) {
+        List<UUID> invitedIds = new ArrayList<UUID>();
+        for (Map.Entry<UUID, Invitation> entry : INVITATIONS.entrySet()) {
+            if (entry.getValue().inviterId().equals(inviter.getUuid())) {
+                invitedIds.add(entry.getKey());
+            }
+        }
+        PartyAddonServerPacket.writeS2CSyncPendingInvitationsPacket(inviter, invitedIds);
+    }
+
+    private static void syncOutgoingInvitations(MinecraftServer server, UUID inviterId) {
+        ServerPlayerEntity inviter = server.getPlayerManager().getPlayer(inviterId);
+        if (inviter != null) {
+            syncOutgoingInvitations(inviter);
+        }
     }
 
     private static void syncParty(MinecraftServer server, Party party) {
