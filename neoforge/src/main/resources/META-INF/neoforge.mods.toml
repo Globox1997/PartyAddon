@@ -1,0 +1,51 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "GPLv3"
+issueTrackerURL = "https://github.com/Globox1997/PartyAddon/issues"
+
+[[mods]]
+modId = "partyaddon"
+version = "${version}"
+displayName = "PartyAddon"
+displayURL = "https://www.curseforge.com/minecraft/mc-mods/partyaddon"
+iconFile = "assets/partyaddon/icon.png"
+authors = "Globox_Z"
+description = '''Party mod to distribute experience'''
+
+[[mixins]]
+config = "partyaddon.mixins.json"
+
+[[dependencies.partyaddon]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neoforge_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.partyaddon]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${minecraft_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.partyaddon]]
+modId = "cloth_config"
+type = "required"
+versionRange = "[${cloth_config_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.partyaddon]]
+modId = "levelz"
+type = "required"
+versionRange = "[2.1.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.partyaddon]]
+modId = "libz"
+type = "required"
+versionRange = "[1.3.0,)"
+ordering = "AFTER"
+side = "BOTH"
